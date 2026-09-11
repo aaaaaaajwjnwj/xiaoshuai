@@ -1,0 +1,2594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+    <title>小帅注入器 · V1.7</title>
+    <style>
+        /* ===== 开屏广告 ===== */
+        #adSplash {
+            position: fixed; inset: 0; z-index: 999999; background: #000;
+            display: flex; align-items: center; justify-content: center;
+            flex-direction: column; overflow: hidden; transition: opacity 0.5s ease;
+        }
+        #adSplash .ad-image-wrap {
+            width: 100%; height: 100%; position: relative;
+            display: flex; align-items: center; justify-content: center;
+        }
+        #adSplash .ad-image-wrap img {
+            width: 100%; height: 100%; object-fit: contain; display: block; background: #000;
+        }
+        #adSplash .ad-skip-btn {
+            position: absolute; top: 20px; right: 20px; color: rgba(255,255,255,0.8);
+            font-size: 13px; background: rgba(0,0,0,0.4); padding: 8px 16px;
+            border-radius: 20px; border: 1px solid rgba(255,255,255,0.15);
+            backdrop-filter: blur(4px); cursor: pointer; z-index: 10; font-weight: 500;
+            transition: all 0.3s; user-select: none; touch-action: none;
+            animation: rotateSkip 2s linear infinite; letter-spacing: 0.5px;
+        }
+        @keyframes rotateSkip { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+        #adSplash .ad-skip-btn:active { transform: scale(0.95); }
+        #adSplash .ad-timer {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            color: rgba(255,255,255,0.6); font-size: 14px; background: rgba(0,0,0,0.4);
+            padding: 6px 18px; border-radius: 20px; backdrop-filter: blur(4px);
+            font-weight: 300; letter-spacing: 1px; z-index: 10;
+        }
+        #adSplash .ad-progress {
+            position: absolute; bottom: 0; left: 0; height: 3px;
+            background: linear-gradient(90deg, #2ecc71, #27ae60);
+            z-index: 10; transition: width 0.1s linear; width: 0%;
+        }
+        #adSplash .ad-counter {
+            position: absolute; top: 20px; left: 20px; color: rgba(255,255,255,0.4);
+            font-size: 12px; background: rgba(0,0,0,0.3); padding: 4px 12px;
+            border-radius: 12px; backdrop-filter: blur(4px); z-index: 10; font-weight: 300;
+        }
+        /* ===== 基础重置 ===== */
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif}
+        :root{
+            --theme-main:#74b8ff;
+            --theme-text:#eaf4ff;
+            --nav-bg:rgba(18,22,38,0.92);
+            --nav-active:#2ecc71;
+            --nav-inactive:rgba(255,255,255,0.4);
+        }
+        body{
+            background:#0a0c18; color:#fff; overflow:hidden;
+            height:100vh; width:100vw; user-select:none; -webkit-user-select:none;
+        }
+
+        #particleLayer{position:fixed;inset:0;pointer-events:none;z-index:8875;overflow:hidden;}
+        .particle{position:absolute;background:var(--theme-main,#74b8ff);border-radius:50%;opacity:0.85;}
+
+        /* ===== 权限弹窗 ===== */
+        #permDialog{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;}
+        .perm-box{width:100%;max-width:340px;background:rgba(18,22,38,0.95);border:1px solid rgba(96,165,250,0.4);border-radius:20px;padding:24px;box-shadow:0 8px 30px rgba(0,0,0,0.5);}
+        .perm-title{font-size:20px;font-weight:700;margin-bottom:12px;color:var(--theme-main,#74b8ff);}
+        .perm-desc{font-size:14px;color:#c0c8e0;line-height:1.7;margin-bottom:20px;}
+        .perm-btn{width:100%;padding:14px;background:linear-gradient(135deg,#2ecc71,#27ae60);border:none;color:#fff;border-radius:12px;font-size:16px;font-weight:600;box-shadow:0 6px 18px rgba(46,204,113,0.4);transition:transform 0.15s;cursor:pointer;}
+        .perm-btn:active{transform:scale(0.97);}
+
+        /* ===== 视频开场 ===== */
+        #videoIntro{position:fixed;inset:0;background:#000;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;overflow:hidden;}
+        #videoIntro video{width:100%;height:100%;object-fit:contain;background:#000;display:block;}
+
+        /* ===== 卡密验证 ===== */
+        #verifyIsland{position:fixed;left:50%;transform:translateX(-50%);top:-100px;background:rgba(10,12,20,0.9);color:white;padding:12px 24px;border-radius:999px;z-index:9900;display:none;white-space:nowrap;box-shadow:0 10px 30px rgba(0,0,0,0.8);cursor:pointer;font-size:15px;border:1px solid rgba(255,255,255,0.2);transition: top 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);backdrop-filter: blur(12px);}
+        #verifyIsland.show{top:14px;}
+        #verifyIsland span{color:#ffbb33;font-weight:bold;margin-left:6px;}
+
+        #cardModal{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9800;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter: blur(8px);}
+        .card-box{width:100%;max-width:320px;background:rgba(18,22,38,0.95);border:1px solid rgba(99,168,255,0.5);border-radius:24px;padding:24px;box-shadow:0 0 40px rgba(35,120,232,0.6);}
+        .card-title{font-size:18px;font-weight:700;margin-bottom:16px;color:var(--theme-main,#74b8ff);text-align:center;}
+        .card-input{width:100%;padding:14px;background:#0c0e1a;border:1px solid #2a3a5a;border-radius:14px;color:#fff;font-size:18px;text-align:center;margin-bottom:16px;outline:none;}
+        .card-btn{width:100%;padding:14px;background:linear-gradient(135deg,#2ecc71,#27ae60);border:none;color:#fff;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;}
+        .card-btn:active{transform:scale(0.97);}
+        .card-error{color:#ff6b6b;font-size:13px;text-align:center;margin-top:10px;min-height:20px;}
+
+        /* ===== 主界面 ===== */
+        #main{
+            width:100%; height:100vh; display:none; overflow:hidden;
+            position:relative; padding-bottom:70px;
+        }
+
+        .page-container{
+            width:100%; height:100%; overflow-y:auto; overflow-x:hidden;
+            padding:16px; padding-bottom:80px; scrollbar-width:none;
+        }
+        .page-container::-webkit-scrollbar{display:none;}
+
+        .page-content{display:none;}
+        .page-content.active{display:block;animation:fadeIn 0.2s ease;}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+        /* ===== 主页 ===== */
+        .home-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+        .home-status{
+            display:inline-flex;align-items:center;gap:6px;
+            background:rgba(46,204,113,0.15);border:1px solid rgba(46,204,113,0.3);
+            color:#2ecc71;padding:8px 16px;border-radius:12px;font-size:14px;
+            font-weight:600;letter-spacing:0.5px;
+        }
+        .home-status .dot{
+            width:8px;height:8px;border-radius:50%;background:#2ecc71;
+            box-shadow:0 0 10px rgba(46,204,113,0.6);
+            animation:pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse{0%,100%{opacity:0.5;transform:scale(0.9);}50%{opacity:1;transform:scale(1.1);}}
+        .home-count{
+            background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);
+            color:rgba(255,255,255,0.7);padding:8px 16px;border-radius:12px;
+            font-size:13px;font-weight:500;letter-spacing:0.5px;
+        }
+        .home-count .num{color:#2ecc71;font-weight:700;font-size:15px;margin-left:4px;}
+        .home-title{
+            text-align:center;font-size:28px;font-weight:800;
+            background:linear-gradient(90deg,#2ecc71,#27ae60,#2ecc71);
+            background-size:200% auto;-webkit-background-clip:text;color:transparent;
+            animation:shine 6s linear infinite;margin-bottom:6px;
+        }
+        @keyframes shine{0%{background-position:0% center}100%{background-position:200% center}}
+        .home-subtitle{
+            text-align:center;font-size:12px;color:rgba(255,255,255,0.4);
+            margin-bottom:24px;letter-spacing:1px;
+        }
+
+        .home-card{
+            background:rgba(18,22,38,0.65);
+            backdrop-filter: blur(16px) saturate(1.4);
+            -webkit-backdrop-filter: blur(16px) saturate(1.4);
+            border:1px solid rgba(46,204,113,0.15);border-radius:20px;
+            padding:20px;margin-bottom:16px;
+            box-shadow:0 8px 30px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
+        }
+        .home-card .card-label{
+            font-size:13px;color:rgba(255,255,255,0.5);
+            margin-bottom:10px;letter-spacing:0.5px;
+        }
+        .home-card .selected-game{
+            font-size:16px;color:#fff;font-weight:600;margin-bottom:14px;
+            text-shadow:0 1px 8px rgba(0,0,0,0.3);
+        }
+        .home-card .selected-game.empty{color:rgba(255,255,255,0.3);font-weight:400;}
+
+        .home-inject-status{
+            background:rgba(46,204,113,0.08);
+            border:1px solid rgba(46,204,113,0.2);
+            border-radius:16px;padding:16px;margin-top:16px;
+            display:none;
+        }
+        .home-inject-status.show{display:block;animation:fadeIn 0.3s ease;}
+        .home-inject-status .status-title{
+            font-size:13px;color:rgba(255,255,255,0.5);
+            margin-bottom:10px;letter-spacing:0.5px;
+        }
+        .home-inject-status .status-row{
+            display:flex;justify-content:space-between;
+            padding:6px 0;font-size:13px;
+            border-bottom:1px solid rgba(255,255,255,0.04);
+        }
+        .home-inject-status .status-row:last-child{border-bottom:none;}
+        .home-inject-status .status-row .label{color:rgba(255,255,255,0.4);}
+        .home-inject-status .status-row .value{color:#2ecc71;font-weight:600;}
+
+        .liquid-btn{
+            display:inline-flex;align-items:center;justify-content:center;
+            padding:14px 28px;background:rgba(255,255,255,0.06);
+            backdrop-filter: blur(8px) saturate(1.3);
+            -webkit-backdrop-filter: blur(8px) saturate(1.3);
+            border:1px solid rgba(255,255,255,0.1);border-radius:60px;
+            color:#fff;font-size:15px;font-weight:600;
+            box-shadow:0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08);
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            cursor:pointer;touch-action:none;min-height:50px;
+            letter-spacing:0.3px;text-shadow:0 1px 8px rgba(0,0,0,0.4);
+        }
+        .liquid-btn:active{transform:scale(0.95);background:rgba(255,255,255,0.1);}
+        .liquid-btn.primary{
+            background:linear-gradient(135deg, rgba(46,204,113,0.3), rgba(39,174,96,0.2));
+            border-color:rgba(46,204,113,0.3);
+            box-shadow:0 4px 20px rgba(46,204,113,0.15), inset 0 1px 0 rgba(255,255,255,0.1);
+        }
+        .liquid-btn.primary:active{
+            background:linear-gradient(135deg, rgba(46,204,113,0.5), rgba(39,174,96,0.35));
+        }
+        .liquid-btn.full{width:100%;}
+        .liquid-btn.disabled{opacity:0.4;pointer-events:none;}
+
+        /* ===== 权限页面 ===== */
+        .perm-page-title{font-size:20px;font-weight:700;margin-bottom:6px;color:#fff;letter-spacing:0.5px;}
+        .perm-page-desc{font-size:13px;color:rgba(255,255,255,0.4);margin-bottom:20px;}
+        .perm-list-item{
+            display:flex;align-items:center;justify-content:space-between;
+            padding:16px 18px;background:rgba(18,22,38,0.65);
+            backdrop-filter: blur(12px);-webkit-backdrop-filter: blur(12px);
+            border:1px solid rgba(255,255,255,0.06);border-radius:16px;
+            margin-bottom:12px;transition:all 0.2s;cursor:pointer;
+        }
+        .perm-list-item:active{transform:scale(0.98);background:rgba(20,26,44,0.8);}
+        .perm-list-item .perm-info{display:flex;flex-direction:column;gap:4px;}
+        .perm-list-item .perm-name{font-size:15px;font-weight:600;color:#fff;}
+        .perm-list-item .perm-desc{font-size:11px;color:rgba(255,255,255,0.35);}
+        .perm-list-item .perm-badge{
+            font-size:11px;padding:4px 12px;border-radius:999px;font-weight:600;
+            background:rgba(255,80,80,0.15);color:#ff6b6b;
+            border:1px solid rgba(255,80,80,0.2);
+        }
+        .perm-list-item .perm-badge.granted{
+            background:rgba(46,204,113,0.15);color:#2ecc71;
+            border-color:rgba(46,204,113,0.25);
+        }
+
+        /* ===== 安全页面 ===== */
+        .shield-status-card{
+            background:rgba(18,22,38,0.65);
+            backdrop-filter: blur(16px);-webkit-backdrop-filter: blur(16px);
+            border:1px solid rgba(46,204,113,0.15);border-radius:20px;
+            padding:20px;margin-bottom:16px;text-align:center;
+        }
+        .shield-status-card .shield-icon{font-size:40px;margin-bottom:10px;}
+        .shield-status-card .shield-name{font-size:18px;font-weight:700;color:#fff;margin-bottom:4px;}
+        .shield-status-card .shield-level{font-size:13px;color:rgba(255,255,255,0.5);}
+        .shield-status-card .shield-level .level-value{color:#2ecc71;font-weight:600;}
+        .shield-option{
+            display:flex;align-items:center;justify-content:space-between;
+            padding:14px 18px;background:rgba(18,22,38,0.65);
+            backdrop-filter: blur(12px);-webkit-backdrop-filter: blur(12px);
+            border:1px solid rgba(255,255,255,0.06);border-radius:14px;
+            margin-bottom:10px;transition:all 0.2s;cursor:pointer;
+        }
+        .shield-option:active{transform:scale(0.98);}
+        .shield-option.selected{
+            border-color:rgba(46,204,113,0.4);
+            background:rgba(46,204,113,0.08);
+        }
+        .shield-option .opt-name{font-size:15px;font-weight:600;color:#fff;}
+        .shield-option .opt-level{font-size:11px;color:rgba(255,255,255,0.4);margin-top:2px;}
+        .shield-option .opt-check{font-size:18px;color:#2ecc71;opacity:0;transition:opacity 0.2s;}
+        .shield-option.selected .opt-check{opacity:1;}
+
+        /* ===== 设置页面 ===== */
+        .setting-item{
+            display:flex;align-items:center;justify-content:space-between;
+            padding:16px 18px;background:rgba(18,22,38,0.65);
+            backdrop-filter: blur(12px);-webkit-backdrop-filter: blur(12px);
+            border:1px solid rgba(255,255,255,0.06);border-radius:16px;
+            margin-bottom:12px;transition:all 0.2s;cursor:pointer;
+        }
+        .setting-item:active{transform:scale(0.98);}
+        .setting-item .setting-name{font-size:15px;font-weight:500;color:#fff;}
+        .setting-item .setting-arrow{font-size:16px;color:rgba(255,255,255,0.3);}
+        .theme-section-title{
+            font-size:13px;color:rgba(255,255,255,0.5);
+            margin:20px 0 12px 0;letter-spacing:0.5px;
+        }
+        .theme-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+        .theme-item{
+            height:48px;border-radius:14px;border:2px solid transparent;
+            cursor:pointer;transition:all 0.2s;display:flex;
+            align-items:center;justify-content:center;font-size:12px;font-weight:600;
+        }
+        .theme-item:active{transform:scale(0.95);}
+        .theme-item.active{border-color:#fff;box-shadow:0 0 15px rgba(255,255,255,0.3);}
+
+        /* ===== 资源页面 ===== */
+        .resource-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+        .resource-progress-text{font-size:13px;color:rgba(255,255,255,0.5);}
+        .resource-progress-text .num{color:#2ecc71;font-weight:700;}
+        .resource-list{display:flex;flex-direction:column;gap:12px;}
+        .resource-item{
+            display:flex;align-items:center;justify-content:space-between;
+            padding:14px 16px;background:rgba(18,22,38,0.65);
+            backdrop-filter: blur(12px);-webkit-backdrop-filter: blur(12px);
+            border:1px solid rgba(255,255,255,0.06);border-radius:14px;
+            transition:all 0.3s;
+        }
+        .resource-item .res-info{display:flex;flex-direction:column;gap:4px;flex:1;margin-right:12px;}
+        .resource-item .res-name{font-size:14px;font-weight:600;color:#fff;}
+        .resource-item .res-desc{font-size:11px;color:rgba(255,255,255,0.35);}
+        .resource-item .res-size{font-size:10px;color:rgba(255,255,255,0.25);margin-top:2px;}
+        .resource-item .res-action{flex-shrink:0;}
+        .res-btn{
+            padding:8px 18px;border-radius:10px;border:none;
+            font-size:12px;font-weight:600;cursor:pointer;
+            transition:all 0.2s;letter-spacing:0.3px;
+            min-width:70px;text-align:center;
+        }
+        .res-btn.download{background:linear-gradient(135deg,#2ecc71,#27ae60);color:#fff;}
+        .res-btn.download:active{transform:scale(0.95);}
+        .res-btn.downloading{
+            background:rgba(46,204,113,0.2);color:#2ecc71;
+            border:1px solid rgba(46,204,113,0.3);
+        }
+        .res-btn.done{
+            background:rgba(46,204,113,0.15);color:#2ecc71;
+            border:1px solid rgba(46,204,113,0.25);cursor:default;
+        }
+        .res-progress-bar{
+            width:100%;height:3px;background:rgba(255,255,255,0.06);
+            border-radius:3px;margin-top:6px;overflow:hidden;
+        }
+        .res-progress-bar .fill{
+            height:100%;background:linear-gradient(90deg,#2ecc71,#27ae60);
+            border-radius:3px;width:0%;transition:width 0.15s linear;
+        }
+
+        /* ===== 底部导航栏 ===== */
+        #bottomNav{
+            position:fixed;bottom:0;left:0;right:0;height:70px;
+            background:var(--nav-bg);
+            backdrop-filter:blur(20px) saturate(1.6);
+            -webkit-backdrop-filter:blur(20px) saturate(1.6);
+            border-top:1px solid rgba(255,255,255,0.06);
+            display:none;align-items:center;justify-content:space-around;
+            z-index:100;padding-bottom:env(safe-area-inset-bottom);
+        }
+        .nav-item{
+            display:flex;flex-direction:column;align-items:center;justify-content:center;
+            gap:3px;flex:1;height:100%;cursor:pointer;transition:all 0.2s;
+            touch-action:none;color:var(--nav-inactive);font-size:11px;
+            font-weight:500;letter-spacing:0.3px;
+        }
+        .nav-item .nav-icon{font-size:20px;transition:transform 0.2s;}
+        .nav-item.active{color:var(--nav-active);}
+        .nav-item.active .nav-icon{transform:scale(1.15);}
+        .nav-item:active{transform:scale(0.92);}
+
+        /* ===== 游戏选择弹窗 ===== */
+        .modal{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px);}
+        .modal-box{width:100%;max-width:340px;background:rgba(20,26,44,0.95);border:1px solid rgba(46,204,113,0.25);border-radius:20px;padding:22px;box-shadow:0 20px 40px rgba(0,0,0,0.7);}
+        .modal-title{font-size:18px;margin-bottom:16px;color:#fff;font-weight:700;}
+        .game-item{padding:14px 12px;border-bottom:1px solid rgba(255,255,255,0.06);font-size:16px;color:#eaf4ff;border-radius:10px;transition:background 0.2s;cursor:pointer;touch-action:none;}
+        .game-item:last-child{border-bottom:none;}
+        .game-item:active{background:rgba(46,204,113,0.12);}
+
+        /* ===== 隐私条款弹窗 ===== */
+        .privacy-modal{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9700;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(10px);}
+        .privacy-box{width:100%;max-width:380px;background:rgba(18,22,38,0.96);border:1px solid rgba(46,204,113,0.4);border-radius:24px;padding:24px;box-shadow:0 0 40px rgba(46,204,113,0.15);max-height:80vh;overflow-y:auto;}
+        .privacy-title{font-size:18px;font-weight:700;margin-bottom:16px;color:#2ecc71;text-align:center;padding-bottom:12px;border-bottom:1px solid rgba(46,204,113,0.15);}
+        .privacy-section{margin-bottom:14px;padding:12px;background:rgba(255,255,255,0.03);border-radius:12px;border-left:3px solid #2ecc71;}
+        .privacy-section .section-label{font-size:12px;color:#74b8ff;font-weight:600;letter-spacing:1px;margin-bottom:4px;}
+        .privacy-section .section-content{font-size:13px;color:rgba(255,255,255,0.7);line-height:1.7;}
+        .privacy-close{width:100%;padding:12px;background:linear-gradient(135deg,#2ecc71,#27ae60);border:none;border-radius:12px;font-size:15px;font-weight:700;color:#fff;cursor:pointer;margin-top:8px;}
+        .privacy-close:active{transform:scale(0.97);}
+
+        /* ===== 赞赏弹窗 ===== */
+        #donateModal{
+            position:fixed;inset:0;background:rgba(0,0,0,0.85);
+            z-index:99999;display:none;align-items:center;justify-content:center;
+            padding:20px;backdrop-filter:blur(10px);
+        }
+        #donateModal.show{display:flex;}
+        #donateModal .donate-box{
+            width:100%;max-width:320px;background:rgba(10,14,28,0.98);
+            border:2px solid rgba(46,204,113,0.5);border-radius:24px;
+            padding:20px;position:relative;
+            box-shadow:0 0 60px rgba(46,204,113,0.3);
+            animation:popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes popIn{
+            from{opacity:0;transform:scale(0.9);}
+            to{opacity:1;transform:scale(1);}
+        }
+        #donateModal .donate-box img{
+            width:100%;height:auto;border-radius:12px;display:block;
+        }
+        #donateModal .donate-close{
+            position:absolute;top:8px;right:12px;font-size:24px;
+            color:#8899bb;cursor:pointer;background:none;border:none;
+            font-weight:300;transition:color 0.2s;
+        }
+        #donateModal .donate-close:hover{color:#fff;}
+        #donateModal .donate-tip{
+            text-align:center;color:#ffd93d;font-size:14px;
+            font-weight:600;margin-top:12px;
+            text-shadow:0 0 20px rgba(255,217,61,0.2);
+        }
+
+        /* ===== 安全盾弹窗 ===== */
+        #shieldPopup{
+            position:fixed;top:50%;left:50%;
+            transform:translate(-50%,-50%) scale(0.9);
+            width:320px;max-width:90vw;
+            background:rgba(10,14,28,0.96);
+            border:2px solid rgba(46,204,113,0.5);
+            border-radius:24px;padding:24px;z-index:9999;
+            display:none;
+            box-shadow:0 0 60px rgba(46,204,113,0.2);
+            backdrop-filter:blur(20px);
+            transition:transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s;
+            opacity:0;
+        }
+        #shieldPopup.show{
+            display:block;opacity:1;
+            transform:translate(-50%,-50%) scale(1);
+        }
+        #shieldPopup .popup-title{
+            font-size:18px;font-weight:700;color:#2ecc71;
+            text-align:center;margin-bottom:16px;letter-spacing:2px;
+        }
+        #shieldPopup .popup-apps{
+            background:rgba(255,255,255,0.04);border-radius:12px;
+            padding:12px;margin-bottom:16px;max-height:150px;overflow-y:auto;
+        }
+        #shieldPopup .popup-apps .app-item{
+            display:flex;justify-content:space-between;padding:6px 0;
+            border-bottom:1px solid rgba(255,255,255,0.04);
+            font-size:13px;color:#c8d8f0;
+        }
+        #shieldPopup .popup-apps .app-item:last-child{border-bottom:none;}
+        #shieldPopup .popup-btns{display:flex;gap:12px;}
+        #shieldPopup .popup-btns button{
+            flex:1;padding:12px;border:none;border-radius:12px;
+            font-size:14px;font-weight:600;cursor:pointer;
+            transition:transform 0.15s;touch-action:none;
+        }
+        #shieldPopup .popup-btns button:active{transform:scale(0.95);}
+        #shieldPopup .popup-btns .btn-uninstall{
+            background:linear-gradient(135deg,#ff4444,#cc0000);color:#fff;
+        }
+        #shieldPopup .popup-btns .btn-disable{
+            background:linear-gradient(135deg,#ff8800,#cc6600);color:#fff;
+        }
+        #shieldPopup .popup-close{
+            margin-top:12px;width:100%;padding:10px;
+            background:rgba(255,255,255,0.06);
+            border:1px solid rgba(255,255,255,0.1);
+            border-radius:10px;color:#8899bb;font-size:13px;
+            cursor:pointer;touch-action:none;
+        }
+
+        /* ===== 灵动岛 ===== */
+        #dynamicIsland{
+            position:fixed;left:50%;transform:translateX(-50%) scale(1);
+            top:12px;height:44px;background:rgba(0,0,0,0.65);
+            backdrop-filter:blur(16px) saturate(1.6);
+            -webkit-backdrop-filter:blur(16px) saturate(1.6);
+            border-radius:999px;z-index:8888;display:none;
+            align-items:center;justify-content:space-between;
+            box-shadow:0 0 30px rgba(0,0,0,0.5);
+            border:1px solid rgba(255,255,255,0.06);
+            cursor:pointer;touch-action:none;
+            transition:all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            padding:0 16px;gap:6px;min-width:100px;
+        }
+        #dynamicIsland:active{transform:translateX(-50%) scale(0.92);}
+        #dynamicIsland .island-icon{
+            width:28px;height:28px;border-radius:50%;overflow:hidden;
+            flex-shrink:0;border:1px solid rgba(255,255,255,0.1);
+        }
+        #dynamicIsland .island-icon img{width:100%;height:100%;object-fit:cover;display:block;}
+        #dynamicIsland .island-text-wrap{
+            display:flex;flex-direction:column;line-height:1.2;flex-shrink:0;
+        }
+        #dynamicIsland .island-text-top{
+            font-size:12px;font-weight:600;color:#fff;letter-spacing:0.3px;
+        }
+        #dynamicIsland .island-text-top span{color:#2ecc71;}
+        #dynamicIsland .island-text-bottom{
+            font-size:9px;color:rgba(255,255,255,0.4);letter-spacing:0.5px;
+        }
+        #dynamicIsland .island-bars{
+            display:flex;align-items:center;gap:3px;height:28px;
+            flex-shrink:0;padding-left:4px;
+        }
+        #dynamicIsland .island-bars .bar{
+            width:3px;border-radius:2px;
+            background:rgba(46, 204, 113, 0.7);
+            transition:height 0.2s ease;
+        }
+        #dynamicIsland .island-bars .bar.bar-short{height:10px;}
+        #dynamicIsland .island-bars .bar.bar-mid{height:16px;}
+        #dynamicIsland .island-bars .bar.bar-long{height:22px;}
+
+        /* ===== 悬浮窗 ===== */
+        #floatPanel{
+            position:fixed;width:340px;height:480px;border-radius:20px;
+            z-index:8880;top:80px;left:14px;display:none;overflow:hidden;
+            box-shadow:0 20px 60px rgba(0,0,0,0.3);
+            user-select:none;background:rgba(255,255,255,0.92);
+            backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+            touch-action:pan-y;border:1px solid rgba(255,255,255,0.2);
+            transition:background 0.3s ease, border-color 0.3s ease;
+        }
+        #floatPanel .float-title{
+            position:absolute;top:14px;left:18px;font-size:18px;
+            font-weight:700;color:#2c3e50;letter-spacing:0.5px;
+            text-shadow:0 1px 4px rgba(0,0,0,0.05);z-index:5;
+            transition:color 0.3s ease;
+        }
+        #floatPanel .float-title span{color:#9b59b6;transition:color 0.3s ease;}
+        #floatPanel .float-close-btn{
+            position:absolute;top:14px;right:14px;width:28px;height:28px;
+            border-radius:50%;background:rgba(0,0,0,0.05);
+            border:1px solid rgba(0,0,0,0.06);color:rgba(0,0,0,0.3);
+            font-size:16px;cursor:pointer;touch-action:none;z-index:6;
+            display:flex;align-items:center;justify-content:center;
+            transition:all 0.2s;font-weight:300;line-height:1;
+        }
+        #floatPanel .float-close-btn:hover{
+            background:rgba(255,0,0,0.08);
+            border-color:rgba(255,0,0,0.2);color:#ff4444;
+        }
+        #floatPanel .float-close-btn:active{transform:scale(0.9);}
+        #floatPanel .float-scroll{
+            width:100%;height:100%;overflow-y:auto;overflow-x:hidden;
+            padding:58px 18px 20px 18px;scrollbar-width:thin;
+            scrollbar-color:rgba(0,0,0,0.06) transparent;
+            -webkit-overflow-scrolling:touch;touch-action:pan-y;
+            will-change:scroll-position;
+        }
+        #floatPanel .float-scroll::-webkit-scrollbar{width:3px;}
+        #floatPanel .float-scroll::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.08);border-radius:4px;}
+        #floatPanel .float-anime{
+            width:100%;border-radius:14px;overflow:hidden;margin-bottom:12px;
+            border:1px solid rgba(0,0,0,0.04);position:relative;
+        }
+        #floatPanel .float-anime img{
+            width:100%;height:auto;display:block;object-fit:cover;max-height:160px;
+        }
+        #floatPanel .float-anime .anime-label{
+            position:absolute;bottom:8px;left:12px;font-size:12px;
+            color:#2ecc71;text-shadow:0 1px 12px rgba(0,0,0,0.1);
+            font-weight:500;letter-spacing:0.5px;transition:color 0.3s ease;
+        }
+        /* 时间和节日 */
+        #floatPanel .float-datetime-row{
+            display:flex;justify-content:space-between;align-items:flex-start;
+            padding:4px 0 2px 0;margin-bottom:4px;
+        }
+        #floatPanel .float-datetime{
+            text-align:left;font-size:24px;font-weight:600;
+            color:#2c3e50;letter-spacing:0.5px;
+            text-shadow:0 1px 4px rgba(0,0,0,0.03);
+            transition:color 0.3s ease;line-height:1.2;
+        }
+        #floatPanel .float-datetime .time-sub{
+            font-size:11px;font-weight:400;color:rgba(0,0,0,0.25);
+            letter-spacing:0.5px;margin-top:2px;transition:color 0.3s ease;
+        }
+        #floatPanel .float-festival{
+            text-align:right;padding-top:4px;flex-shrink:0;
+        }
+        #floatPanel .float-festival .festival-name{
+            font-size:13px;font-weight:700;color:#e74c3c;
+            letter-spacing:0.5px;transition:color 0.3s ease;
+        }
+        #floatPanel .float-festival .festival-days{
+            font-size:11px;font-weight:500;color:rgba(0,0,0,0.4);
+            margin-top:2px;transition:color 0.3s ease;
+        }
+        #floatPanel .float-festival .festival-days .num{
+            color:#e74c3c;font-weight:700;font-size:13px;
+        }
+        #floatPanel .float-welcome{
+            font-size:13px;color:rgba(0,0,0,0.4);margin:6px 0 8px 0;
+            text-shadow:0 1px 4px rgba(0,0,0,0.03);
+            font-weight:400;transition:color 0.3s ease;
+        }
+        #floatPanel .float-announce{
+            padding:10px 14px;background:rgba(155, 89, 182, 0.06);
+            border-radius:12px;border-left:3px solid #9b59b6;
+            font-size:12px;color:rgba(0,0,0,0.5);
+            text-shadow:0 1px 4px rgba(0,0,0,0.03);
+            margin-bottom:14px;line-height:1.5;transition:all 0.3s ease;
+        }
+        #floatPanel .float-announce strong{
+            color:#e74c3c;font-weight:600;transition:color 0.3s ease;
+        }
+        #floatPanel .float-func-tabs{
+            display:flex;gap:4px;margin-bottom:14px;flex-wrap:nowrap;
+            overflow-x:auto;padding-bottom:4px;scrollbar-width:none;
+        }
+        #floatPanel .float-func-tabs::-webkit-scrollbar{display:none;}
+        #floatPanel .float-func-tab{
+            padding:4px 12px;border-radius:999px;font-size:11px;
+            font-weight:500;color:rgba(0,0,0,0.3);background:rgba(0,0,0,0.04);
+            border:1px solid rgba(0,0,0,0.04);white-space:nowrap;
+            cursor:pointer;touch-action:none;transition:all 0.25s;flex-shrink:0;
+        }
+        #floatPanel .float-func-tab.active{
+            color:#2c3e50;background:rgba(155, 89, 182, 0.08);
+            border-color:rgba(155, 89, 182, 0.15);
+        }
+        #floatPanel .page{display:none;animation:fadeIn 0.2s ease;}
+        #floatPanel .page.active{display:block;}
+        #floatPanel .item{
+            display:flex;justify-content:space-between;align-items:center;
+            margin:6px 0;padding:8px 12px;background:rgba(0,0,0,0.03);
+            border-radius:10px;border:1px solid rgba(0,0,0,0.04);
+        }
+        #floatPanel .item span{
+            color:#2c3e50;font-weight:500;font-size:13px;transition:color 0.3s ease;
+        }
+        #floatPanel .switch{
+            width:40px;height:22px;border-radius:99px;background:#ddd;
+            position:relative;transition:background 0.25s;
+            cursor:pointer;touch-action:none;flex-shrink:0;
+        }
+        #floatPanel .switch.on{background:#3498db;box-shadow:0 0 12px rgba(52,152,219,0.3);}
+        #floatPanel .switch::after{
+            content:"";position:absolute;width:16px;height:16px;
+            background:#fff;border-radius:50%;top:3px;left:3px;transition:0.25s;
+        }
+        #floatPanel .switch.on::after{left:21px;}
+        #floatPanel .switch.locked{
+            background:#ccc !important;
+            opacity:0.5;
+            cursor:not-allowed;
+        }
+        #floatPanel .switch.locked::after{
+            background:#eee;
+        }
+        #floatPanel .slider-wrap{
+            margin:8px 0;padding:8px 12px;background:rgba(0,0,0,0.03);
+            border-radius:10px;border:1px solid rgba(0,0,0,0.04);
+        }
+        #floatPanel .slider-wrap div:first-child{
+            margin-bottom:4px;color:#2c3e50;font-weight:500;
+            font-size:12px;transition:color 0.3s ease;
+        }
+        #floatPanel input[type=range]{width:100%;accent-color:#9b59b6;height:3px;}
+        #floatPanel .disc{
+            color:rgba(0,0,0,0.5);font-size:12px;line-height:1.6;
+            margin-bottom:8px;padding:8px 12px;background:rgba(0,0,0,0.04);
+            border-radius:10px;border-left:3px solid #9b59b6;transition:all 0.3s ease;
+        }
+        #floatPanel .theme-color-wrap{
+            display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;
+        }
+        #floatPanel .theme-color-item{
+            height:36px;border-radius:10px;border:2px solid transparent;
+            cursor:pointer;transition:transform 0.2s;touch-action:none;
+        }
+        #floatPanel .theme-color-item:active{transform:scale(0.95);}
+        #floatPanel .theme-color-item.active{
+            border-color:#2c3e50;box-shadow:0 0 12px rgba(0,0,0,0.1);
+        }
+        #floatPanel .theme-effect-wrap{
+            display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px;
+        }
+        #floatPanel .theme-effect-item{
+            padding:10px 4px;border-radius:10px;
+            border:2px solid rgba(0,0,0,0.04);cursor:pointer;
+            text-align:center;font-size:12px;font-weight:600;
+            background:rgba(0,0,0,0.03);
+            transition:all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            color:rgba(0,0,0,0.4);touch-action:none;
+        }
+        #floatPanel .theme-effect-item:active{transform:scale(0.95);}
+        #floatPanel .theme-effect-item.active{
+            border-color:#9b59b6;background:rgba(155, 89, 182, 0.06);
+            color:#2c3e50;box-shadow:0 0 25px rgba(155, 89, 182, 0.06);
+        }
+        #floatPanel #effectPreview{
+            width:100%;height:90px;border-radius:12px;background:#f5f5f5;
+            margin-top:8px;border:1px solid rgba(0,0,0,0.04);display:block;
+        }
+        #floatPanel .music-list{
+            display:flex;flex-direction:column;gap:6px;margin-top:4px;padding-bottom:6px;
+        }
+        #floatPanel .music-item{
+            padding:8px 12px;background:rgba(0,0,0,0.03);
+            border-radius:10px;cursor:pointer;display:flex;
+            align-items:center;justify-content:space-between;
+            border:1px solid rgba(0,0,0,0.04);
+            transition:all 0.2s;touch-action:none;
+        }
+        #floatPanel .music-item:active{background:rgba(155, 89, 182, 0.04);}
+        #floatPanel .music-item.active{
+            border-color:#9b59b6;background:rgba(155, 89, 182, 0.04);
+        }
+        #floatPanel .music-title{
+            font-size:13px;font-weight:600;color:#2c3e50;transition:color 0.3s ease;
+        }
+        #floatPanel .music-status{
+            font-size:10px;color:rgba(0,0,0,0.3);margin-top:2px;
+            transition:color 0.3s ease;
+        }
+        #floatPanel .music-play-btn{
+            background:rgba(0,0,0,0.04);border:none;color:#2c3e50;
+            width:28px;height:28px;border-radius:50%;font-size:14px;
+            cursor:pointer;touch-action:none;flex-shrink:0;
+            transition:color 0.3s ease;
+        }
+        #floatPanel .music-play-btn:active{transform:scale(0.9);}
+        #floatPanel .music-controls{
+            display:flex;justify-content:space-around;margin-top:8px;gap:4px;
+        }
+        #floatPanel .music-ctrl-btn{
+            background:rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.04);
+            color:rgba(0,0,0,0.4);padding:4px 10px;border-radius:16px;
+            font-size:11px;cursor:pointer;touch-action:none;
+            transition:color 0.3s ease;
+        }
+        #floatPanel .music-ctrl-btn:active{background:rgba(0,0,0,0.06);}
+        #floatPanel .music-now{
+            text-align:center;margin:6px 0;font-size:14px;
+            font-weight:600;color:#9b59b6;transition:color 0.3s ease;
+        }
+        #floatPanel .fps-display{
+            background:rgba(0,0,0,0.04);border-radius:10px;
+            padding:4px 10px;margin-bottom:6px;display:flex;
+            justify-content:space-between;align-items:center;
+            border:1px solid rgba(0,0,0,0.04);
+        }
+        #floatPanel .fps-display .fps-label{
+            color:rgba(0,0,0,0.3);font-size:11px;font-weight:500;
+            transition:color 0.3s ease;
+        }
+        #floatPanel .fps-display .fps-value{
+            font-size:16px;font-weight:700;color:#2ecc71;
+            transition:color 0.3s ease;
+        }
+        #floatPanel .fps-display .fps-unit{
+            font-size:10px;color:rgba(0,0,0,0.15);margin-left:3px;
+        }
+        #floatPanel .perm-status-card{
+            background:rgba(0,0,0,0.04);border-radius:10px;
+            padding:8px;margin-bottom:6px;border:1px solid rgba(0,0,0,0.04);
+        }
+        #floatPanel .perm-status-card .perm-row{
+            display:flex;justify-content:space-between;padding:3px 0;
+            font-size:12px;border-bottom:1px solid rgba(0,0,0,0.04);
+        }
+        #floatPanel .perm-status-card .perm-row:last-child{border-bottom:none;}
+        #floatPanel .perm-status-card .perm-row .label{color:rgba(0,0,0,0.4);}
+        #floatPanel .perm-status-card .perm-row .value{font-weight:600;}
+        #floatPanel .perm-status-card .perm-row .value.granted{color:#2ecc71;}
+        #floatPanel .perm-status-card .perm-row .value.denied{color:#e74c3c;}
+        #floatPanel .perm-status-card .perm-title{
+            font-size:12px;font-weight:600;color:#9b59b6;
+            margin-bottom:4px;text-align:center;transition:color 0.3s ease;
+        }
+
+        /* ===== 仿苹果顶部消息通知 ===== */
+        #iosNotification{
+            position:fixed;top:-120px;left:50%;transform:translateX(-50%);
+            width:92%;max-width:400px;background:rgba(255,255,255,0.95);
+            backdrop-filter:blur(30px) saturate(1.8);
+            -webkit-backdrop-filter:blur(30px) saturate(1.8);
+            border-radius:18px;padding:12px 16px;z-index:99999;
+            display:flex;align-items:center;gap:12px;
+            box-shadow:0 10px 40px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.5);
+            transition:top 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s;
+            opacity:0;pointer-events:none;
+        }
+        #iosNotification.show{top:14px;opacity:1;}
+        #iosNotification .notif-icon{
+            width:36px;height:36px;border-radius:10px;
+            background:linear-gradient(135deg,#2ecc71,#27ae60);
+            display:flex;align-items:center;justify-content:center;
+            font-size:18px;flex-shrink:0;
+            box-shadow:0 2px 8px rgba(46,204,113,0.3);
+        }
+        #iosNotification .notif-content{
+            flex:1;display:flex;flex-direction:column;gap:2px;
+        }
+        #iosNotification .notif-title{
+            font-size:13px;font-weight:700;color:#1a1a2e;letter-spacing:0.3px;
+        }
+        #iosNotification .notif-body{
+            font-size:12px;color:#666;font-weight:400;
+        }
+        #iosNotification .notif-time{
+            font-size:11px;color:#999;flex-shrink:0;
+            align-self:flex-start;margin-top:2px;
+        }
+
+        /* ===== 确认弹窗 ===== */
+        #confirmModal{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9700;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px);}
+        .confirm-box{width:100%;max-width:320px;background:rgba(18,22,38,0.95);border:1px solid rgba(46,204,113,0.4);border-radius:24px;padding:24px;}
+        .confirm-title{font-size:18px;font-weight:700;margin-bottom:16px;color:#2ecc71;text-align:center;}
+        .confirm-desc{font-size:15px;color:#e0e8ff;text-align:center;margin-bottom:20px;line-height:1.6;}
+        .confirm-btns{display:flex;gap:12px;}
+        .confirm-btn{flex:1;padding:12px;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;transition:0.2s;}
+        .confirm-btn:active{transform:scale(0.95);}
+        .btn-ok{background:linear-gradient(135deg,#2ecc71,#27ae60);color:#fff;}
+        .btn-cancel{background:rgba(255,255,255,0.1);color:#ccc;border:1px solid rgba(255,255,255,0.2);}
+
+        /* ===== 授权弹窗 ===== */
+        #authModal{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9700;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px);}
+        .auth-box{width:100%;max-width:320px;background:rgba(18,22,38,0.96);border:1px solid rgba(46,204,113,0.4);border-radius:24px;padding:24px;}
+        .auth-title{font-size:18px;font-weight:700;margin-bottom:12px;color:#2ecc71;text-align:center;}
+        .auth-desc{font-size:14px;color:#c8d8f0;text-align:center;line-height:1.7;margin-bottom:20px;}
+        .auth-btns{display:flex;gap:12px;}
+        .auth-btns button{flex:1;padding:12px;border:none;border-radius:12px;font-size:15px;font-weight:600;transition:0.2s;cursor:pointer;}
+        .auth-btns button:active{transform:scale(0.95);}
+        .btn-allow{background:linear-gradient(135deg,#2ecc71,#27ae60);color:#fff;}
+        .btn-deny{background:rgba(255,255,255,0.08);color:#ccc;border:1px solid rgba(255,255,255,0.15);}
+
+        .trigger-hint{
+            position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
+            background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);
+            padding:8px 18px;border-radius:20px;color:#2ecc71;
+            font-size:12px;z-index:100;display:none;
+            border:1px solid rgba(46,204,113,0.2);
+            pointer-events:none;transition:opacity 0.3s;
+        }
+        .trigger-hint.show{display:block;opacity:1;}
+    </style>
+</head>
+<body>
+
+<!-- ===== 开屏广告 ===== -->
+<div id="adSplash">
+    <div class="ad-image-wrap">
+        <img id="adImage" src="" alt="广告" />
+        <div class="ad-skip-btn" id="adSkipBtn">跳过广告</div>
+    </div>
+    <div class="ad-counter" id="adCounter">1/4</div>
+    <div class="ad-timer" id="adTimer">6s</div>
+    <div class="ad-progress" id="adProgress"></div>
+</div>
+
+<!-- ===== 仿苹果顶部消息通知 ===== -->
+<div id="iosNotification">
+    <div class="notif-icon" id="notifIcon">✓</div>
+    <div class="notif-content">
+        <div class="notif-title" id="notifTitle">小帅注入器</div>
+        <div class="notif-body" id="notifBody">已开启功能</div>
+    </div>
+    <div class="notif-time" id="notifTime">刚刚</div>
+</div>
+
+<!-- ===== 原有内容 ===== -->
+<div id="particleLayer"></div>
+<div id="videoIntro">
+    <video id="introVideo" muted playsinline></video>
+</div>
+
+<div id="permDialog" style="display:none;">
+    <div class="perm-box">
+        <div class="perm-title">权限申请</div>
+        <div class="perm-desc">为保证工具正常运行，需要授予2项权限：<br/><br/>1. 读取本机已安装应用列表<br/>2. 悬浮窗显示权限<br/><br/>全部允许后才可以进入程序。</div>
+        <button class="perm-btn" id="grantPermBtn">授予全部权限</button>
+    </div>
+</div>
+
+<div id="verifyIsland">验证卡密 <span></span></div>
+
+<div id="cardModal">
+    <div class="card-box">
+        <div class="card-title">输入卡密</div>
+        <input type="text" class="card-input" id="cardInput" placeholder="请输入卡密" maxlength="10">
+        <button class="card-btn" id="cardSubmit">验证</button>
+        <div class="card-error" id="cardError"></div>
+    </div>
+</div>
+
+<!-- ===== 主界面 ===== -->
+<div id="main">
+    <div class="page-container">
+        <!-- 主页 -->
+        <div class="page-content active" id="page-home">
+            <div class="home-header">
+                <div class="home-status">
+                    <span class="dot"></span>
+                    XSHUB工作中✔️
+                </div>
+                <div class="home-count">
+                    启动次数 <span class="num" id="launchCount">0</span>
+                </div>
+            </div>
+            <div class="home-title">小帅注入器</div>
+            <div class="home-subtitle">XSHUB · 免ROOT · V1.7</div>
+
+            <div class="home-card">
+                <div class="card-label">当前选择游戏</div>
+                <div class="selected-game empty" id="selectedGameText">暂未选择游戏</div>
+                <button class="liquid-btn primary full" id="btnSelectGame">选择游戏</button>
+            </div>
+
+            <button class="liquid-btn primary full" id="btnInject" style="margin-top:8px;">注入游戏</button>
+
+            <div class="home-inject-status" id="homeInjectStatus">
+                <div class="status-title">当前注入状态</div>
+                <div class="status-row">
+                    <span class="label">游戏名称</span>
+                    <span class="value" id="homeStatusGame">--</span>
+                </div>
+                <div class="status-row">
+                    <span class="label">运行状态</span>
+                    <span class="value" style="color:#2ecc71;">已注入</span>
+                </div>
+                <div class="status-row">
+                    <span class="label">安全盾</span>
+                    <span class="value" id="homeStatusShield">未选择</span>
+                </div>
+                <div class="status-row">
+                    <span class="label">网络延迟</span>
+                    <span class="value" id="homeStatusNet">--</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 权限页面 -->
+        <div class="page-content" id="page-perm">
+            <div class="perm-page-title">权限管理</div>
+            <div class="perm-page-desc">请至少授权一项权限，才能进行游戏注入</div>
+
+            <div class="perm-list-item" data-perm="root">
+                <div class="perm-info">
+                    <div class="perm-name">Root授权</div>
+                    <div class="perm-desc">获取系统最高权限，功能最全面</div>
+                </div>
+                <div class="perm-badge" id="badge-root">未授权</div>
+            </div>
+
+            <div class="perm-list-item" data-perm="data">
+                <div class="perm-info">
+                    <div class="perm-name">Data文件授权</div>
+                    <div class="perm-desc">访问应用数据目录，读取配置</div>
+                </div>
+                <div class="perm-badge" id="badge-data">未授权</div>
+            </div>
+
+            <div class="perm-list-item" data-perm="driver">
+                <div class="perm-info">
+                    <div class="perm-name">驱动授权</div>
+                    <div class="perm-desc">加载内核驱动，实现底层功能</div>
+                </div>
+                <div class="perm-badge" id="badge-driver">未授权</div>
+            </div>
+        </div>
+
+        <!-- 安全页面 -->
+        <div class="page-content" id="page-security">
+            <div class="perm-page-title">安全盾</div>
+            <div class="perm-page-desc">选择安全强度以保护设备安全</div>
+
+            <div class="shield-status-card">
+                <div class="shield-icon"></div>
+                <div class="shield-name">XS安全盾</div>
+                <div class="shield-level">当前强度：<span class="level-value" id="currentShieldLevel">未选择</span></div>
+            </div>
+
+            <div class="shield-option" data-shield="low">
+                <div>
+                    <div class="opt-name">低强度</div>
+                    <div class="opt-level">基础防护 · 性能优先</div>
+                </div>
+                <div class="opt-check">✓</div>
+            </div>
+
+            <div class="shield-option" data-shield="mid">
+                <div>
+                    <div class="opt-name">中强度</div>
+                    <div class="opt-level">平衡防护 · 推荐使用</div>
+                </div>
+                <div class="opt-check">✓</div>
+            </div>
+
+            <div class="shield-option" data-shield="high">
+                <div>
+                    <div class="opt-name">高强度</div>
+                    <div class="opt-level">超级防御 · 全面保护</div>
+                </div>
+                <div class="opt-check">✓</div>
+            </div>
+        </div>
+
+        <!-- 设置页面 -->
+        <div class="page-content" id="page-settings">
+            <div class="perm-page-title">设置</div>
+            <div class="perm-page-desc">个性化配置与隐私说明</div>
+
+            <div class="setting-item" id="privacyBtn">
+                <div class="setting-name">隐私条款</div>
+                <div class="setting-arrow">›</div>
+            </div>
+
+            <div class="theme-section-title">主题背景颜色</div>
+            <div class="theme-grid">
+                <div class="theme-item" data-theme="dark" style="background:#0a0c18;color:#fff;">深空黑</div>
+                <div class="theme-item" data-theme="green" style="background:#0d2818;color:#fff;">暗夜绿</div>
+                <div class="theme-item" data-theme="purple" style="background:#1a0d28;color:#fff;">紫罗兰</div>
+                <div class="theme-item" data-theme="blue" style="background:#0d1a28;color:#fff;">深海蓝</div>
+                <div class="theme-item" data-theme="red" style="background:#280d0d;color:#fff;">烈焰红</div>
+                <div class="theme-item" data-theme="pink" style="background:#280d1a;color:#fff;">樱花粉</div>
+                <div class="theme-item" data-theme="orange" style="background:#281a0d;color:#fff;">琥珀橙</div>
+                <div class="theme-item" data-theme="cyan" style="background:#0d2828;color:#fff;">青碧色</div>
+            </div>
+        </div>
+
+        <!-- 资源页面 -->
+        <div class="page-content" id="page-resource">
+            <div class="perm-page-title">资源下载</div>
+            <div class="resource-header">
+                <div class="resource-progress-text">
+                    下载进度 <span class="num" id="resourceProgressNum">0</span>/8
+                </div>
+            </div>
+            <div class="resource-list" id="resourceList"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 底部导航栏 ===== -->
+<div id="bottomNav" style="display:none;">
+    <div class="nav-item active" data-page="home">
+        <div class="nav-icon"></div>
+        <div>主页</div>
+    </div>
+    <div class="nav-item" data-page="perm">
+        <div class="nav-icon"></div>
+        <div>权限</div>
+    </div>
+    <div class="nav-item" data-page="security">
+        <div class="nav-icon"></div>
+        <div>安全</div>
+    </div>
+    <div class="nav-item" data-page="settings">
+        <div class="nav-icon"></div>
+        <div>设置</div>
+    </div>
+    <div class="nav-item" data-page="resource">
+        <div class="nav-icon"></div>
+        <div>资源</div>
+    </div>
+</div>
+
+<!-- ===== 灵动岛 ===== -->
+<div id="dynamicIsland">
+    <div class="island-icon">
+        <img src="https://faka.longfei1.com/upload/72/3d35e22a693696970e9a972f7b6d76.png" alt="帅" />
+    </div>
+    <div class="island-text-wrap">
+        <div class="island-text-top">小帅 <span>XSHUB</span></div>
+        <div class="island-text-bottom">🫡🫡🫡</div>
+    </div>
+    <div class="island-bars" id="islandBars">
+        <div class="bar bar-short" id="bar1"></div>
+        <div class="bar bar-mid" id="bar2"></div>
+        <div class="bar bar-long" id="bar3"></div>
+        <div class="bar bar-mid" id="bar4"></div>
+        <div class="bar bar-short" id="bar5"></div>
+    </div>
+</div>
+
+<!-- ===== 悬浮窗 ===== -->
+<div id="floatPanel">
+    <div class="float-title">小帅<span>大牛</span></div>
+    <button class="float-close-btn" id="floatCloseBtn">×</button>
+    
+    <div class="float-scroll" id="floatScroll">
+        <div class="float-anime">
+            <img src="https://faka.longfei1.com/upload/55/010fe0955fbb900f2b009a60baface.png" alt="XSHUB" />
+            <div class="anime-label">Hi 我们又见面了</div>
+        </div>
+        
+        <!-- 时间和节日 -->
+        <div class="float-datetime-row">
+            <div class="float-datetime" id="floatTime">
+                00:00
+                <div class="time-sub" id="floatDate">2026年9月5日 周六</div>
+            </div>
+            <div class="float-festival" id="floatFestival">
+                <div class="festival-name" id="festivalName">春节</div>
+                <div class="festival-days">还有 <span class="num" id="festivalDays">0</span> 天</div>
+            </div>
+        </div>
+        
+        <div class="float-welcome">欢迎你使用</div>
+        
+        <div class="float-announce">
+            服务器因 <strong>欠费</strong> 问题暂时无法使用
+        </div>
+        
+        <div class="float-func-tabs" id="funcTabs">
+            <div class="float-func-tab active" data-page="home">主页</div>
+            <div class="float-func-tab" data-page="draw">绘制</div>
+            <div class="float-func-tab" data-page="aim">自瞄</div>
+            <div class="float-func-tab" data-page="adjust">调节</div>
+            <div class="float-func-tab" data-page="music">音乐</div>
+            <div class="float-func-tab" data-page="theme">主题</div>
+            <div class="float-func-tab" data-page="donate">赞赏</div>
+        </div>
+        
+        <!-- 主页 -->
+        <div class="page active" id="page-home">
+            <div class="disc">小帅大牛 · 免root版<br>使用则默认同意条款</div>
+            <div class="fps-display">
+                <span class="fps-label">网络延迟</span>
+                <span><span class="fps-value" id="netDelay">--</span><span class="fps-unit">ms</span></span>
+            </div>
+            <div class="fps-display">
+                <span class="fps-label">当前游戏</span>
+                <span class="fps-value" id="floatCurrentGame" style="font-size:14px;">未选择</span>
+            </div>
+            <div class="fps-display">
+                <span class="fps-label">屏幕刷新率</span>
+                <span><span class="fps-value" id="fpsValue">--</span><span class="fps-unit">Hz</span></span>
+            </div>
+            <div class="perm-status-card" id="permStatusCard">
+                <div class="perm-title">授权状态</div>
+                <div class="perm-row"><span class="label">Root权限</span><span class="value" id="fStatusRoot">未授权</span></div>
+                <div class="perm-row"><span class="label">驱动授权</span><span class="value" id="fStatusDriver">未授权</span></div>
+                <div class="perm-row"><span class="label">Data文件授权</span><span class="value" id="fStatusData">未授权</span></div>
+            </div>
+        </div>
+        
+        <!-- 绘制 -->
+        <div class="page" id="page-draw">
+            <div class="item"><span>绘制人物骨骼</span><div class="switch" data-toggle="skeleton"></div></div>
+            <div class="item"><span>绘制距离</span><div class="switch" data-toggle="distance"></div></div>
+            <div class="item"><span>绘制射线</span><div class="switch" data-toggle="ray"></div></div>
+            <div class="item"><span>绘制方框</span><div class="switch" data-toggle="box"></div></div>
+        </div>
+        
+        <!-- 自瞄 -->
+        <div class="page" id="page-aim">
+            <div class="item"><span>自瞄圈</span><div class="switch" data-toggle="aim"></div></div>
+            <div class="slider-wrap"><div>自瞄范围：<span id="aimVal">200</span></div><input type="range" id="aimSlider" min="20" max="500" value="200"></div>
+        </div>
+        
+        <!-- 调节 -->
+        <div class="page" id="page-adjust">
+            <div class="slider-wrap"><div>悬浮窗宽度：<span id="wVal">340</span> px</div><input type="range" id="widthSlider" min="240" max="420" value="340"></div>
+            <div class="slider-wrap"><div>悬浮窗高度：<span id="hVal">480</span> px</div><input type="range" id="heightSlider" min="300" max="520" value="480"></div>
+        </div>
+        
+        <!-- 音乐 -->
+        <div class="page" id="page-music">
+            <div class="music-now" id="musicNowPlaying">未播放音乐</div>
+            <div class="music-list" id="musicList"></div>
+            <div class="music-controls">
+                <button class="music-ctrl-btn" id="musicPrev">上一首</button>
+                <button class="music-ctrl-btn" id="musicToggle">暂停/播放</button>
+                <button class="music-ctrl-btn" id="musicNext">下一首</button>
+            </div>
+            <p class="disc" style="margin-top:8px;">考虑到各位的OPPO A5撑不住所以说只有这么多</p>
+        </div>
+        
+        <!-- 主题 -->
+        <div class="page" id="page-theme">
+            <div class="disc">选择UI主题颜色</div>
+            <div class="theme-color-wrap">
+                <div class="theme-color-item" data-color="#ffffff" style="background:#ffffff;"></div>
+                <div class="theme-color-item" data-color="#9c27b0" style="background:#9c27b0;"></div>
+                <div class="theme-color-item" data-color="#00c853" style="background:#00c853;"></div>
+                <div class="theme-color-item" data-color="#ffd600" style="background:#ffd600;"></div>
+                <div class="theme-color-item" data-color="#000000" style="background:#000000;"></div>
+                <div class="theme-color-item" data-color="#e91e63" style="background:#e91e63;"></div>
+            </div>
+            <div class="disc" style="margin-top:10px;">动态特效主题</div>
+            <div class="theme-effect-wrap">
+                <div class="theme-effect-item" data-effect="aurora">极光</div>
+                <div class="theme-effect-item" data-effect="bubble">泡泡</div>
+                <div class="theme-effect-item" data-effect="firework">烟花</div>
+                <div class="theme-effect-item" data-effect="wave">波浪</div>
+                <div class="theme-effect-item" data-effect="glitch">故障</div>
+                <div class="theme-effect-item" data-effect="rainbow">彩虹</div>
+            </div>
+            <canvas id="effectPreview" width="300" height="90"></canvas>
+        </div>
+        
+        <!-- 赞赏 -->
+        <div class="page" id="page-donate">
+            <div class="disc">感谢您的支持</div>
+            <div style="text-align:center;padding:20px 0;cursor:pointer;" id="donateTrigger">
+                <div style="font-size:48px;margin-bottom:12px;">❤️</div>
+                <div style="color:rgba(0,0,0,0.5);font-size:14px;">点击赞赏作者</div>
+                <div style="color:rgba(0,0,0,0.2);font-size:12px;margin-top:8px;">您的支持是我最大的动力</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 游戏选择弹窗 ===== -->
+<div class="modal" id="gameModal">
+    <div class="modal-box">
+        <div class="modal-title">选择游戏</div>
+        <div class="game-item" data-game="三角洲行动">三角洲行动</div>
+        <div class="game-item" data-game="暗区突围">暗区突围</div>
+        <div class="game-item" data-game="和平精英">和平精英</div>
+        <div class="game-item" data-game="萤火突击">萤火突击</div>
+        <div class="game-item" data-game="王牌竞速">王牌竞速</div>
+    </div>
+</div>
+
+<!-- ===== 赞赏弹窗 ===== -->
+<div id="donateModal">
+    <div class="donate-box">
+        <button class="donate-close" id="donateClose">×</button>
+        <img src="https://faka.longfei1.com/upload/d3/384096dc1b41a8c9c1c7813f4bb5d5.png" alt="赞赏码" />
+        <div class="donate-tip">感谢您的赞赏支持</div>
+    </div>
+</div>
+
+<!-- ===== 隐私条款弹窗 ===== -->
+<div class="privacy-modal" id="privacyModal">
+    <div class="privacy-box">
+        <div class="privacy-title">隐私条款</div>
+        <div class="privacy-section">
+            <div class="section-label">一、信息收集</div>
+            <div class="section-content">本软件仅在本地运行，不会收集您的任何个人信息。所有数据均存储在您的设备本地，不会上传至服务器。</div>
+        </div>
+        <div class="privacy-section">
+            <div class="section-label">二、权限使用</div>
+            <div class="section-content">Root权限、Data文件授权、驱动授权仅用于实现注入功能，不会用于其他用途。您可以随时在系统设置中撤销授权。</div>
+        </div>
+        <div class="privacy-section">
+            <div class="section-label">三、免责声明</div>
+            <div class="section-content">本软件仅供学习研究使用，请在24小时内删除。使用本软件造成的任何后果由用户自行承担。</div>
+        </div>
+        <div class="privacy-section">
+            <div class="section-label">四、联系方式</div>
+            <div class="section-content">官方频道：@XSHUB666<br>官方网站：XSHUB666.COM</div>
+        </div>
+        <button class="privacy-close" id="privacyClose">我知道了</button>
+    </div>
+</div>
+
+<!-- ===== 安全盾弹窗 ===== -->
+<div id="shieldPopup">
+    <div class="popup-title">XS安全盾</div>
+    <div class="popup-apps" id="popupApps">
+        <div class="app-item"><span>com.android.chrome</span><span>Chrome</span></div>
+        <div class="app-item"><span>com.tencent.mm</span><span>微信</span></div>
+        <div class="app-item"><span>com.eg.android.AlipayGphone</span><span>支付宝</span></div>
+        <div class="app-item"><span>com.ss.android.ugc.aweme</span><span>抖音</span></div>
+    </div>
+    <div class="popup-btns">
+        <button class="btn-uninstall" id="popupUninstall">立即卸载</button>
+        <button class="btn-disable" id="popupDisable">强制停用</button>
+    </div>
+    <button class="popup-close" id="popupClose">关闭</button>
+</div>
+
+<!-- ===== 确认弹窗 ===== -->
+<div id="confirmModal">
+    <div class="confirm-box">
+        <div class="confirm-title">是否注入</div>
+        <div class="confirm-desc" id="confirmGameName">已选择的游戏：</div>
+        <div class="confirm-btns">
+            <button class="confirm-btn btn-ok" id="confirmOk">确定</button>
+            <button class="confirm-btn btn-cancel" id="confirmCancel">取消</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 授权弹窗 ===== -->
+<div id="authModal">
+    <div class="auth-box">
+        <div class="auth-title" id="authTitle">授权</div>
+        <div class="auth-desc" id="authDesc">是否授予该权限？</div>
+        <div class="auth-btns">
+            <button class="btn-allow" id="authAllow">允许</button>
+            <button class="btn-deny" id="authDeny">拒绝</button>
+        </div>
+    </div>
+</div>
+
+<div class="trigger-hint" id="triggerHint">已触发安全盾</div>
+
+<script>
+    // ============================================================
+    //  仿苹果顶部消息通知
+    // ============================================================
+    const iosNotif = document.getElementById('iosNotification');
+    const notifIcon = document.getElementById('notifIcon');
+    const notifTitle = document.getElementById('notifTitle');
+    const notifBody = document.getElementById('notifBody');
+    const notifTime = document.getElementById('notifTime');
+    let notifTimer = null;
+
+    function showIOSNotification(title, body, isOn) {
+        notifIcon.textContent = isOn ? '✓' : '✕';
+        notifIcon.style.background = isOn 
+            ? 'linear-gradient(135deg,#2ecc71,#27ae60)' 
+            : 'linear-gradient(135deg,#e74c3c,#c0392b)';
+        notifTitle.textContent = title || '小帅注入器';
+        notifBody.textContent = body || '';
+        const now = new Date();
+        const h = String(now.getHours()).padStart(2, '0');
+        const m = String(now.getMinutes()).padStart(2, '0');
+        notifTime.textContent = `${h}:${m}`;
+        
+        iosNotif.classList.remove('show');
+        void iosNotif.offsetWidth;
+        iosNotif.classList.add('show');
+        
+        clearTimeout(notifTimer);
+        notifTimer = setTimeout(() => {
+            iosNotif.classList.remove('show');
+        }, 2500);
+    }
+
+    // ============================================================
+    //  节日系统
+    // ============================================================
+    const festivals = [
+        { name: '元旦', month: 1, day: 1 },
+        { name: '情人节', month: 2, day: 14 },
+        { name: '妇女节', month: 3, day: 8 },
+        { name: '植树节', month: 3, day: 12 },
+        { name: '愚人节', month: 4, day: 1 },
+        { name: '劳动节', month: 5, day: 1 },
+        { name: '青年节', month: 5, day: 4 },
+        { name: '儿童节', month: 6, day: 1 },
+        { name: '建党节', month: 7, day: 1 },
+        { name: '建军节', month: 8, day: 1 },
+        { name: '教师节', month: 9, day: 10 },
+        { name: '国庆节', month: 10, day: 1 },
+        { name: '万圣节', month: 10, day: 31 },
+        { name: '光棍节', month: 11, day: 11 },
+        { name: '圣诞节', month: 12, day: 25 }
+    ];
+
+    function getNextFestival() {
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const today = new Date(currentYear, now.getMonth(), now.getDate());
+        
+        let nextFestival = null;
+        let minDays = Infinity;
+        
+        for (const f of festivals) {
+            // 计算今年的该节日
+            let festivalDate = new Date(currentYear, f.month - 1, f.day);
+            // 如果今年的已经过了，用明年的
+            if (festivalDate < today) {
+                festivalDate = new Date(currentYear + 1, f.month - 1, f.day);
+            }
+            const diffTime = festivalDate - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            if (diffDays < minDays) {
+                minDays = diffDays;
+                nextFestival = { name: f.name, days: diffDays };
+            }
+        }
+        return nextFestival;
+    }
+
+    function updateFestival() {
+        const next = getNextFestival();
+        if (next) {
+            const nameEl = document.getElementById('festivalName');
+            const daysEl = document.getElementById('festivalDays');
+            if (nameEl) nameEl.textContent = next.name;
+            if (daysEl) daysEl.textContent = next.days;
+        }
+    }
+
+    // ============================================================
+    //  实时时间更新
+    // ============================================================
+    function updateTime() {
+        const now = new Date();
+        const h = String(now.getHours()).padStart(2, '0');
+        const m = String(now.getMinutes()).padStart(2, '0');
+        const s = String(now.getSeconds()).padStart(2, '0');
+        const timeEl = document.getElementById('floatTime');
+        const dateEl = document.getElementById('floatDate');
+        if (timeEl) {
+            timeEl.innerHTML = `${h}:${m}:${s}<div class="time-sub" id="floatDate">${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 ${['周日','周一','周二','周三','周四','周五','周六'][now.getDay()]}</div>`;
+        }
+        updateFestival();
+    }
+
+    // 每秒更新时间
+    setInterval(updateTime, 1000);
+    updateTime();
+
+    // ============================================================
+    //  广告系统
+    // ============================================================
+    const adImages = [
+        'https://faka.longfei1.com/upload/b2/335d372b2fcea2a1b93eda6e724d90.png',
+        'https://faka.longfei1.com/upload/ab/6baae62017ce942b3161e29c4bca24.png',
+        'https://faka.longfei1.com/upload/d7/72124b9f0e33954ff2da5fc46e7645.png',
+        'https://faka.longfei1.com/upload/a0/578ef88459b62bb5c66e2927d574fb.png'
+    ];
+    let adIndex = 0;
+    let adTimer = 6;
+    let adInterval = null;
+    let adCountdown = null;
+    const adSplash = document.getElementById('adSplash');
+    const adImage = document.getElementById('adImage');
+    const adCounter = document.getElementById('adCounter');
+    const adTimerEl = document.getElementById('adTimer');
+    const adProgress = document.getElementById('adProgress');
+    const adSkipBtn = document.getElementById('adSkipBtn');
+
+    function showAd(index) {
+        if (index >= adImages.length) {
+            adSplash.style.opacity = '0';
+            setTimeout(() => {
+                adSplash.style.display = 'none';
+                playNextVideo();
+            }, 500);
+            return;
+        }
+        adIndex = index;
+        adTimer = 6;
+        adImage.src = adImages[index];
+        adCounter.textContent = `${index + 1}/${adImages.length}`;
+        adTimerEl.textContent = `${adTimer}s`;
+        adProgress.style.width = '0%';
+        
+        clearInterval(adInterval);
+        clearInterval(adCountdown);
+        
+        adInterval = setInterval(() => {
+            const progress = ((6 - adTimer) / 6) * 100;
+            adProgress.style.width = progress + '%';
+        }, 100);
+        
+        adCountdown = setInterval(() => {
+            adTimer--;
+            adTimerEl.textContent = `${adTimer}s`;
+            if (adTimer <= 0) {
+                clearInterval(adCountdown);
+                clearInterval(adInterval);
+                showAd(index + 1);
+            }
+        }, 1000);
+    }
+
+    adSkipBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        clearInterval(adCountdown);
+        clearInterval(adInterval);
+        adSplash.style.opacity = '0';
+        setTimeout(() => {
+            adSplash.style.display = 'none';
+            playNextVideo();
+        }, 300);
+    });
+
+    // ============================================================
+    //  0. 视频开场
+    // ============================================================
+    const videoIntro = document.getElementById('videoIntro');
+    const introVideo = document.getElementById('introVideo');
+    const videoList = [
+        'https://faka.longfei1.com/upload/42/4297513b105a7c306f0df337ea485f.mp4',
+        'https://faka.longfei1.com/upload/6d/6043ee28049c4eb6cc25205955fa15.mp4'
+    ];
+    let currentVideoIndex = 0;
+    function playNextVideo() {
+        if (currentVideoIndex < videoList.length) {
+            introVideo.src = videoList[currentVideoIndex];
+            introVideo.load();
+            introVideo.play().catch(e => console.warn('视频播放失败:', e));
+            currentVideoIndex++;
+        } else {
+            videoIntro.style.display = 'none';
+            document.getElementById('permDialog').style.display = 'flex';
+        }
+    }
+    introVideo.addEventListener('ended', playNextVideo);
+
+    // ============================================================
+    //  权限管理
+    // ============================================================
+    const PERM_KEYS = { root: 'xs_v13_perm_root', data: 'xs_v13_perm_data', driver: 'xs_v13_perm_driver' };
+    const PERM_LABELS = { root: 'Root授权', data: 'Data文件授权', driver: '驱动授权' };
+
+    function loadPermStatus() {
+        const status = {};
+        for (const [key, storageKey] of Object.entries(PERM_KEYS)) {
+            const val = localStorage.getItem(storageKey);
+            status[key] = val === 'granted' ? 'granted' : 'denied';
+        }
+        return status;
+    }
+    function savePermStatus(key, value) { 
+        localStorage.setItem(PERM_KEYS[key], value);
+    }
+    function updatePermUI() {
+        const status = loadPermStatus();
+        for (const [key, val] of Object.entries(status)) {
+            const badge = document.getElementById('badge-' + key);
+            if (badge) {
+                badge.textContent = val === 'granted' ? '已授权' : '未授权';
+                badge.className = 'perm-badge' + (val === 'granted' ? ' granted' : '');
+            }
+            const fEl = document.getElementById('fStatus' + key.charAt(0).toUpperCase() + key.slice(1));
+            if (fEl) {
+                fEl.textContent = val === 'granted' ? '已授权' : '未授权';
+                fEl.className = 'value ' + (val === 'granted' ? 'granted' : 'denied');
+            }
+        }
+    }
+    function hasAnyPermission() {
+        const status = loadPermStatus();
+        return status.root === 'granted' || status.data === 'granted' || status.driver === 'granted';
+    }
+
+    // ============================================================
+    //  授权弹窗
+    // ============================================================
+    let pendingAuthKey = null;
+    function showAuthModal(permKey) {
+        pendingAuthKey = permKey;
+        const label = PERM_LABELS[permKey] || permKey;
+        document.getElementById('authTitle').textContent = label;
+        document.getElementById('authDesc').textContent = '是否授予「' + label + '」？\n授权后可在权限页面查看状态。';
+        document.getElementById('authModal').style.display = 'flex';
+    }
+    document.getElementById('authAllow').addEventListener('click', function() {
+        if (pendingAuthKey) { 
+            savePermStatus(pendingAuthKey, 'granted'); 
+            updatePermUI();
+            showIOSNotification('小帅注入器', PERM_LABELS[pendingAuthKey] + ' 已开启', true);
+        }
+        document.getElementById('authModal').style.display = 'none'; pendingAuthKey = null;
+    });
+    document.getElementById('authDeny').addEventListener('click', function() {
+        if (pendingAuthKey) { 
+            savePermStatus(pendingAuthKey, 'denied'); 
+            updatePermUI();
+            showIOSNotification('小帅注入器', PERM_LABELS[pendingAuthKey] + ' 已关闭', false);
+        }
+        document.getElementById('authModal').style.display = 'none'; pendingAuthKey = null;
+    });
+
+    document.querySelectorAll('.perm-list-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const perm = this.dataset.perm;
+            showAuthModal(perm);
+        });
+    });
+
+    // ============================================================
+    //  游戏选择
+    // ============================================================
+    let selectedGame = null;
+    const gameModal = document.getElementById('gameModal');
+    document.getElementById('btnSelectGame').addEventListener('click', () => {
+        gameModal.style.display = 'flex';
+    });
+    document.querySelectorAll('.game-item').forEach(it => {
+        it.addEventListener('click', () => {
+            selectedGame = it.dataset.game;
+            document.getElementById('selectedGameText').textContent = selectedGame;
+            document.getElementById('selectedGameText').classList.remove('empty');
+            document.getElementById('floatCurrentGame').textContent = selectedGame;
+            gameModal.style.display = 'none';
+            showIOSNotification('小帅注入器', '已选择游戏：' + selectedGame, true);
+        });
+    });
+
+    // ============================================================
+    //  注入游戏
+    // ============================================================
+    const confirmModal = document.getElementById('confirmModal');
+    document.getElementById('btnInject').addEventListener('click', () => {
+        if (!selectedGame) {
+            alert('请先选择游戏');
+            return;
+        }
+        if (!hasAnyPermission()) {
+            alert('请至少授予一项权限后再进行注入');
+            return;
+        }
+        if (!allResourcesDownloaded()) {
+            alert('请先下载全部资源后再进行注入');
+            return;
+        }
+        document.getElementById('confirmGameName').textContent = '已选择的游戏：' + selectedGame;
+        confirmModal.style.display = 'flex';
+    });
+
+    document.getElementById('confirmOk').addEventListener('click', () => {
+        confirmModal.style.display = 'none';
+        let count = parseInt(localStorage.getItem('xs_v13_launch_count') || '0');
+        count++;
+        localStorage.setItem('xs_v13_launch_count', count.toString());
+        document.getElementById('launchCount').textContent = count;
+
+        document.getElementById('dynamicIsland').style.display = 'flex';
+        document.getElementById('floatPanel').style.display = 'block';
+        
+        document.getElementById('floatCurrentGame').textContent = selectedGame;
+
+        const shieldLevel = localStorage.getItem('xs_v13_shield_level') || '未选择';
+        const shieldNames = { low: '低强度', mid: '中强度', high: '高强度' };
+        document.getElementById('homeStatusGame').textContent = selectedGame;
+        document.getElementById('homeStatusShield').textContent = shieldNames[shieldLevel] || '未选择';
+        document.getElementById('homeInjectStatus').classList.add('show');
+
+        const netDelay = Math.floor(Math.random() * 60) + 20;
+        document.getElementById('homeStatusNet').textContent = netDelay + 'ms';
+
+        startBarAnimation();
+        startFPSMonitor();
+        startNetworkMonitor();
+
+        showIOSNotification('小帅注入器', '游戏注入成功：' + selectedGame, true);
+    });
+    document.getElementById('confirmCancel').addEventListener('click', () => {
+        confirmModal.style.display = 'none';
+    });
+
+    // ============================================================
+    //  安全盾
+    // ============================================================
+    let currentShield = localStorage.getItem('xs_v13_shield_level') || null;
+    const shieldNames = { low: '低强度', mid: '中强度', high: '高强度' };
+
+    function updateShieldUI() {
+        document.querySelectorAll('.shield-option').forEach(el => {
+            el.classList.toggle('selected', el.dataset.shield === currentShield);
+        });
+        const levelEl = document.getElementById('currentShieldLevel');
+        if (levelEl) {
+            levelEl.textContent = currentShield ? shieldNames[currentShield] : '未选择';
+        }
+        const homeShield = document.getElementById('homeStatusShield');
+        if (homeShield) {
+            homeShield.textContent = currentShield ? shieldNames[currentShield] : '未选择';
+        }
+    }
+
+    document.querySelectorAll('.shield-option').forEach(el => {
+        el.addEventListener('click', function() {
+            const shield = this.dataset.shield;
+            currentShield = shield;
+            localStorage.setItem('xs_v13_shield_level', shield);
+            updateShieldUI();
+            showIOSNotification('小帅注入器', '安全盾已切换为：' + shieldNames[shield], true);
+        });
+    });
+
+    // ============================================================
+    //  安全盾弹窗核心
+    // ============================================================
+    const mockApps = [
+        { pkg: 'com.android.chrome', name: 'Chrome' },
+        { pkg: 'com.tencent.mm', name: '微信' },
+        { pkg: 'com.eg.android.AlipayGphone', name: '支付宝' },
+        { pkg: 'com.ss.android.ugc.aweme', name: '抖音' },
+        { pkg: 'com.tencent.mobileqq', name: 'QQ' },
+        { pkg: 'com.xiaomi.market', name: '小米应用商店' },
+        { pkg: 'com.huawei.appmarket', name: '华为应用市场' },
+        { pkg: 'com.android.settings', name: '设置' },
+        { pkg: 'com.tencent.wework', name: '企业微信' },
+        { pkg: 'com.sankuai.meituan', name: '美团' },
+        { pkg: 'com.jingdong.app.mall', name: '京东' },
+        { pkg: 'com.taobao.taobao', name: '淘宝' },
+        { pkg: 'com.netease.cloudmusic', name: '网易云音乐' },
+        { pkg: 'com.tencent.qqmusic', name: 'QQ音乐' }
+    ];
+
+    let shieldPopupShowing = false;
+    function showShieldPopup() {
+        if (shieldPopupShowing) return;
+        shieldPopupShowing = true;
+        const shuffled = [...mockApps].sort(() => Math.random() - 0.5);
+        const selected = shuffled.slice(0, 4 + Math.floor(Math.random() * 3));
+        const popupApps = document.getElementById('popupApps');
+        popupApps.innerHTML = '';
+        selected.forEach(app => {
+            const div = document.createElement('div');
+            div.className = 'app-item';
+            div.innerHTML = `<span>${app.pkg}</span><span>${app.name}</span>`;
+            popupApps.appendChild(div);
+        });
+        document.getElementById('shieldPopup').classList.add('show');
+        setTimeout(() => {
+            if (shieldPopupShowing) {
+                document.getElementById('shieldPopup').classList.remove('show');
+                shieldPopupShowing = false;
+            }
+        }, 15000);
+    }
+
+    document.getElementById('popupClose').addEventListener('click', function() {
+        document.getElementById('shieldPopup').classList.remove('show');
+        shieldPopupShowing = false;
+    });
+    document.getElementById('popupUninstall').addEventListener('click', function() {
+        alert('跳转到设置页面卸载应用 (模拟)');
+        document.getElementById('shieldPopup').classList.remove('show');
+        shieldPopupShowing = false;
+    });
+    document.getElementById('popupDisable').addEventListener('click', function() {
+        alert('应用已停用 (模拟)');
+        document.getElementById('shieldPopup').classList.remove('show');
+        shieldPopupShowing = false;
+    });
+
+    // ============================================================
+    //  音量键监听
+    // ============================================================
+    let volumePressCount = 0;
+    let volumePressTimer = null;
+
+    document.addEventListener('keydown', function(e) {
+        if (e.keyCode === 175 || e.keyCode === 174) {
+            e.preventDefault();
+            if (!currentShield) {
+                showIOSNotification('小帅注入器', '请先在安全页面选择安全强度', false);
+                return;
+            }
+            volumePressCount++;
+            clearTimeout(volumePressTimer);
+            volumePressTimer = setTimeout(() => {
+                if (volumePressCount >= 3) {
+                    showShieldPopup();
+                    showIOSNotification('小帅注入器', '音量键触发安全盾', true);
+                }
+                volumePressCount = 0;
+            }, 800);
+        }
+    });
+
+    // ============================================================
+    //  底部导航
+    // ============================================================
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const page = this.dataset.page;
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            this.classList.add('active');
+            document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+            const target = document.getElementById('page-' + page);
+            if (target) target.classList.add('active');
+        });
+    });
+
+    // ============================================================
+    //  设置 - 隐私条款
+    // ============================================================
+    document.getElementById('privacyBtn').addEventListener('click', function() {
+        document.getElementById('privacyModal').style.display = 'flex';
+    });
+    document.getElementById('privacyClose').addEventListener('click', function() {
+        document.getElementById('privacyModal').style.display = 'none';
+    });
+
+    // ============================================================
+    //  主题颜色切换
+    // ============================================================
+    const themeColors = {
+        dark: { bg: '#0a0c18', card: 'rgba(18,22,38,0.65)', text: '#ffffff', accent: '#2ecc71', navBg: 'rgba(18,22,38,0.92)' },
+        green: { bg: '#0d2818', card: 'rgba(13,40,24,0.8)', text: '#ffffff', accent: '#2ecc71', navBg: 'rgba(13,40,24,0.95)' },
+        purple: { bg: '#1a0d28', card: 'rgba(26,13,40,0.8)', text: '#ffffff', accent: '#9b59b6', navBg: 'rgba(26,13,40,0.95)' },
+        blue: { bg: '#0d1a28', card: 'rgba(13,26,40,0.8)', text: '#ffffff', accent: '#3498db', navBg: 'rgba(13,26,40,0.95)' },
+        red: { bg: '#280d0d', card: 'rgba(40,13,13,0.8)', text: '#ffffff', accent: '#e74c3c', navBg: 'rgba(40,13,13,0.95)' },
+        pink: { bg: '#280d1a', card: 'rgba(40,13,26,0.8)', text: '#ffffff', accent: '#e91e63', navBg: 'rgba(40,13,26,0.95)' },
+        orange: { bg: '#281a0d', card: 'rgba(40,26,13,0.8)', text: '#ffffff', accent: '#f39c12', navBg: 'rgba(40,26,13,0.95)' },
+        cyan: { bg: '#0d2828', card: 'rgba(13,40,40,0.8)', text: '#ffffff', accent: '#1abc9c', navBg: 'rgba(13,40,40,0.95)' }
+    };
+
+    document.querySelectorAll('.theme-item').forEach(item => {
+        item.addEventListener('click', function() {
+            document.querySelectorAll('.theme-item').forEach(i => i.classList.remove('active'));
+            this.classList.add('active');
+            const theme = this.dataset.theme;
+            const colors = themeColors[theme];
+            if (!colors) return;
+
+            document.body.style.background = colors.bg;
+            document.documentElement.style.setProperty('--nav-bg', colors.navBg);
+            document.documentElement.style.setProperty('--nav-active', colors.accent);
+
+            localStorage.setItem('xs_v13_theme', theme);
+            showIOSNotification('小帅注入器', '主题已切换为：' + this.textContent, true);
+        });
+    });
+
+    const savedTheme = localStorage.getItem('xs_v13_theme');
+    if (savedTheme && themeColors[savedTheme]) {
+        document.querySelectorAll('.theme-item').forEach(item => {
+            if (item.dataset.theme === savedTheme) item.classList.add('active');
+        });
+        const colors = themeColors[savedTheme];
+        document.body.style.background = colors.bg;
+        document.documentElement.style.setProperty('--nav-bg', colors.navBg);
+        document.documentElement.style.setProperty('--nav-active', colors.accent);
+    }
+
+    // ============================================================
+    //  资源下载系统（8个资源）
+    // ============================================================
+    const resources = [
+        { id: 'res1', name: '核心注入模块', desc: '游戏注入核心驱动文件', size: '2.4 MB' },
+        { id: 'res2', name: '内存读写库', desc: '内存读写与进程通信', size: '1.8 MB' },
+        { id: 'res3', name: '绘制引擎', desc: 'ESP绘制渲染引擎', size: '3.2 MB' },
+        { id: 'res4', name: '自瞄算法', desc: '智能自瞄核心算法', size: '1.5 MB' },
+        { id: 'res5', name: '特征库', desc: '游戏人物特征识别库', size: '4.1 MB' },
+        { id: 'res6', name: '驱动签名', desc: '驱动签名验证文件', size: '0.9 MB' },
+        { id: 'res7', name: '配置模板', desc: '默认功能配置模板', size: '0.3 MB' },
+        { id: 'res8', name: '字体资源', desc: '绘制所需字体文件', size: '1.2 MB' }
+    ];
+
+    function allResourcesDownloaded() {
+        for (const res of resources) {
+            if (localStorage.getItem('xs_v13_' + res.id) !== 'done') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    function updateResourceProgress() {
+        let done = 0;
+        for (const res of resources) {
+            if (localStorage.getItem('xs_v13_' + res.id) === 'done') done++;
+        }
+        const progressEl = document.getElementById('resourceProgressNum');
+        if (progressEl) progressEl.textContent = done;
+        updateFeatureLocks();
+    }
+
+    // 检查功能是否锁定（资源未下载时锁定）
+    function updateFeatureLocks() {
+        const allDone = allResourcesDownloaded();
+        // 锁定悬浮窗内所有开关
+        document.querySelectorAll('#floatPanel .switch').forEach(sw => {
+            if (!allDone) {
+                sw.classList.add('locked');
+                sw.classList.remove('on');
+            } else {
+                sw.classList.remove('locked');
+            }
+        });
+        // 锁定自瞄滑块
+        const aimSlider = document.getElementById('aimSlider');
+        if (aimSlider) {
+            aimSlider.disabled = !allDone;
+            aimSlider.style.opacity = allDone ? '1' : '0.4';
+        }
+        // 锁定音乐控件
+        document.querySelectorAll('#floatPanel .music-item, #floatPanel .music-ctrl-btn, #floatPanel .music-play-btn').forEach(el => {
+            el.style.pointerEvents = allDone ? 'auto' : 'none';
+            el.style.opacity = allDone ? '1' : '0.4';
+        });
+        // 锁定特效选择
+        document.querySelectorAll('#floatPanel .theme-effect-item').forEach(el => {
+            el.style.pointerEvents = allDone ? 'auto' : 'none';
+            el.style.opacity = allDone ? '1' : '0.4';
+        });
+    }
+
+    function renderResourceList() {
+        const list = document.getElementById('resourceList');
+        if (!list) return;
+        list.innerHTML = '';
+        resources.forEach(res => {
+            const isDone = localStorage.getItem('xs_v13_' + res.id) === 'done';
+            const item = document.createElement('div');
+            item.className = 'resource-item';
+            item.innerHTML = `
+                <div class="res-info">
+                    <div class="res-name">${res.name}</div>
+                    <div class="res-desc">${res.desc}</div>
+                    <div class="res-size">${res.size}</div>
+                    <div class="res-progress-bar" id="bar-${res.id}"><div class="fill" id="fill-${res.id}"></div></div>
+                </div>
+                <div class="res-action">
+                    <button class="res-btn ${isDone ? 'done' : 'download'}" id="btn-${res.id}">
+                        ${isDone ? '已下载' : '下载'}
+                    </button>
+                </div>
+            `;
+            list.appendChild(item);
+        });
+
+        resources.forEach(res => {
+            const btn = document.getElementById('btn-' + res.id);
+            if (!btn) return;
+            const isDone = localStorage.getItem('xs_v13_' + res.id) === 'done';
+            if (isDone) return;
+
+            btn.addEventListener('click', function() {
+                if (this.classList.contains('downloading')) return;
+                this.classList.remove('download');
+                this.classList.add('downloading');
+                this.textContent = '0%';
+
+                const fill = document.getElementById('fill-' + res.id);
+                let progress = 0;
+                const speed = 1 + Math.random() * 3;
+                const interval = setInterval(() => {
+                    progress += speed;
+                    if (progress > 100) progress = 100;
+                    if (fill) fill.style.width = progress + '%';
+                    if (btn) btn.textContent = Math.floor(progress) + '%';
+
+                    if (progress >= 100) {
+                        clearInterval(interval);
+                        localStorage.setItem('xs_v13_' + res.id, 'done');
+                        btn.classList.remove('downloading');
+                        btn.classList.add('done');
+                        btn.textContent = '已下载';
+                        updateResourceProgress();
+                        showIOSNotification('资源下载', res.name + ' 下载完成', true);
+
+                        if (allResourcesDownloaded()) {
+                            showIOSNotification('小帅注入器', '全部资源下载完成，功能已解锁', true);
+                        }
+                    }
+                }, 100);
+            });
+        });
+        updateFeatureLocks();
+    }
+
+    renderResourceList();
+    updateResourceProgress();
+
+    // ============================================================
+    //  灵动岛 / 悬浮窗
+    // ============================================================
+    const floatPanel = document.getElementById('floatPanel');
+    let floatVisible = true;
+
+    document.getElementById('dynamicIsland').addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (floatVisible) {
+            floatPanel.style.opacity = '0';
+            floatPanel.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                floatPanel.style.display = 'none';
+                floatVisible = false;
+            }, 150);
+        } else {
+            floatPanel.style.display = 'block';
+            floatPanel.style.opacity = '0';
+            floatPanel.style.transform = 'scale(0.95)';
+            requestAnimationFrame(() => {
+                floatPanel.style.transition = 'all 0.15s ease';
+                floatPanel.style.opacity = '1';
+                floatPanel.style.transform = 'scale(1)';
+            });
+            setTimeout(() => {
+                floatPanel.style.transition = '';
+                floatVisible = true;
+            }, 180);
+        }
+    });
+
+    document.getElementById('floatCloseBtn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        floatPanel.style.opacity = '0';
+        floatPanel.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            floatPanel.style.display = 'none';
+            floatVisible = false;
+        }, 150);
+        showIOSNotification('小帅注入器', '悬浮窗已关闭', false);
+    });
+
+    // 悬浮窗功能开关（带资源检查）
+    document.querySelectorAll('#floatPanel .switch').forEach(sw => {
+        sw.addEventListener('click', function() {
+            if (this.classList.contains('locked')) {
+                showIOSNotification('小帅注入器', '请先在资源页面下载全部资源', false);
+                return;
+            }
+            this.classList.toggle('on');
+            const isOn = this.classList.contains('on');
+            const toggleName = this.dataset.toggle;
+            const nameMap = {
+                skeleton: '绘制人物骨骼',
+                distance: '绘制距离',
+                ray: '绘制射线',
+                box: '绘制方框',
+                aim: '自瞄圈'
+            };
+            const name = nameMap[toggleName] || toggleName;
+            showIOSNotification('小帅注入器', name + (isOn ? ' 已开启' : ' 已关闭'), isOn);
+        });
+    });
+
+    // 悬浮窗标签切换
+    document.querySelectorAll('#floatPanel .float-func-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            document.querySelectorAll('#floatPanel .float-func-tab').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            document.querySelectorAll('#floatPanel .page').forEach(p => p.classList.remove('active'));
+            const target = document.getElementById('page-' + this.dataset.page);
+            if (target) target.classList.add('active');
+            
+            if (this.dataset.page === 'theme') {
+                startEffectPreview();
+            } else {
+                stopEffectPreview();
+            }
+        });
+    });
+
+    // 自瞄滑块（带资源检查）
+    const aimSlider = document.getElementById('aimSlider');
+    if (aimSlider) {
+        aimSlider.addEventListener('input', function() {
+            if (!allResourcesDownloaded()) return;
+            document.getElementById('aimVal').textContent = this.value;
+        });
+    }
+
+    // 悬浮窗拖拽
+    (function() {
+        let isDragging = false, offsetX = 0, offsetY = 0;
+        floatPanel.addEventListener('mousedown', function(e) {
+            const rect = floatPanel.getBoundingClientRect();
+            if (e.clientY - rect.top > 50) return;
+            isDragging = true;
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+            floatPanel.style.transition = 'none';
+            e.preventDefault();
+        });
+        document.addEventListener('mousemove', function(e) {
+            if (!isDragging) return;
+            let left = e.clientX - offsetX;
+            let top = e.clientY - offsetY;
+            const maxX = window.innerWidth - floatPanel.offsetWidth;
+            const maxY = window.innerHeight - floatPanel.offsetHeight;
+            left = Math.max(0, Math.min(left, maxX));
+            top = Math.max(0, Math.min(top, maxY));
+            floatPanel.style.left = left + 'px';
+            floatPanel.style.top = top + 'px';
+        });
+        document.addEventListener('mouseup', function() {
+            if (isDragging) {
+                isDragging = false;
+                floatPanel.style.transition = '';
+            }
+        });
+    })();
+
+    // ============================================================
+    //  音乐播放器（带资源检查）
+    // ============================================================
+    const musicTracks = [
+        { title: "弱水三千", src: "https://faka.longfei1.com/upload/8e/b57a9bc91589d193047f23f9777486.mp4" },
+        { title: "辞九门回忆", src: "https://faka.longfei1.com/upload/7f/b9683dfd1a1e70b0db3ea83db61970.mp4" },
+        { title: "朋友的酒", src: "https://faka.longfei1.com/upload/b4/261792ed448ff03dc5b119d3fb52b9.mp3" },
+        { title: "咏春", src: "https://faka.longfei1.com/upload/ea/d2277004fdcbc15ad93f647cf4d285.mp3" },
+        { title: "天使的翅膀", src: "https://faka.longfei1.com/upload/20/d5bc81cb650e225d0896a2a70d6dc0.mp3" },
+        { title: "最好的安排", src: "https://faka.longfei1.com/upload/d1/6ed78d489067172f7a2b1871f487af.mp3" },
+        { title: "刚好遇见你", src: "https://faka.longfei1.com/upload/7d/f5640e8585a0c121da04326345307d.mp3" },
+        { title: "鹿（熊出没）", src: "https://faka.longfei1.com/upload/df/2e9d0ebde15166511ebc2823f6c5e5.mp3" },
+        { title: "筷子兄弟", src: "https://faka.longfei1.com/upload/01/8c78f3036b14ce1fbffff2d43c0f65.mp3" },
+        { title: "大天蓬", src: "https://faka.longfei1.com/upload/a6/a6f8f4046ba0898be3b4af427b449c.mp3" },
+        { title: "偏爱", src: "https://faka.longfei1.com/upload/67/871a0bc5b1613f448c02bac6091cbd.mp3" },
+        { title: "水手", src: "https://faka.longfei1.com/upload/81/54ee7a590f27d45471c77129cbc1a8.mp3" },
+        { title: "妈妈的话", src: "https://faka.longfei1.com/upload/ec/d8f470c7bbade7f38b5763b3f4bb0f.mp4" },
+        { title: "长安姑娘", src: "https://faka.longfei1.com/upload/47/f5d225c5f6eadb9015a829f4980733.mp4" },
+        { title: "觉悟", src: "https://faka.longfei1.com/upload/df/059cac86c40cd60310076c84be7612.mp4" },
+        { title: "Luvsic", src: "https://faka.longfei1.com/upload/f4/2263462459f86c5a947573b2e81174.mp4" },
+        { title: "执迷不悟", src: "https://faka.longfei1.com/upload/bb/e5957ea99ed83af090a4384e9b5396.mp4" },
+        { title: "琵琶曲", src: "https://faka.longfei1.com/upload/36/d3876b63ba86c792f2c65f8b933715.mp4" },
+        { title: "差一步", src: "https://faka.longfei1.com/upload/3e/d7f4f4f8f5ba5cf175f23bf7b1aebd.mp4" },
+        { title: "红色高跟鞋", src: "https://faka.longfei1.com/upload/f1/7df1ec5830c3f2d30b6d7648ab9eda.mp4" }
+    ];
+    let currentMusicIndex = 0, isMusicPlaying = false;
+    const audio = new Audio();
+    audio.preload = 'auto';
+    document.body.appendChild(audio);
+    audio.id = 'globalAudio';
+
+    const musicNowPlaying = document.getElementById('musicNowPlaying');
+    const musicListContainer = document.getElementById('musicList');
+
+    function renderMusicList() {
+        if (!musicListContainer) return;
+        musicListContainer.innerHTML = '';
+        musicTracks.forEach((track, index) => {
+            const item = document.createElement('div');
+            item.className = 'music-item' + (index === currentMusicIndex ? ' active' : '');
+            item.innerHTML = `<div><div class="music-title">${track.title}</div><div class="music-status">${index === currentMusicIndex && isMusicPlaying ? '播放中' : '点击切换'}</div></div>
+            <button class="music-play-btn">${index === currentMusicIndex && isMusicPlaying ? '⏸' : '▶'}</button>`;
+            item.addEventListener('click', function(e) {
+                if (!allResourcesDownloaded()) {
+                    showIOSNotification('小帅注入器', '请先在资源页面下载全部资源', false);
+                    return;
+                }
+                if (e.target.classList.contains('music-play-btn')) {
+                    if (currentMusicIndex === index && isMusicPlaying) pauseMusic();
+                    else { switchMusic(index); playMusic(); }
+                } else {
+                    switchMusic(index);
+                    playMusic();
+                }
+            });
+            musicListContainer.appendChild(item);
+        });
+    }
+
+    function switchMusic(index) { 
+        currentMusicIndex = index; 
+        audio.src = musicTracks[index].src; 
+        audio.load(); 
+        updateMusicUI(); 
+    }
+    function playMusic() { 
+        if (!allResourcesDownloaded()) {
+            showIOSNotification('小帅注入器', '请先在资源页面下载全部资源', false);
+            return;
+        }
+        if (!audio.src) audio.src = musicTracks[currentMusicIndex].src; 
+        audio.play().then(() => {
+            isMusicPlaying = true;
+            updateMusicUI();
+            startBarAnimation();
+        }).catch(() => {
+            isMusicPlaying = false;
+            updateMusicUI();
+        });
+    }
+    function pauseMusic() { 
+        audio.pause(); 
+        isMusicPlaying = false; 
+        updateMusicUI(); 
+    }
+    function togglePlayPause() { 
+        if (!allResourcesDownloaded()) {
+            showIOSNotification('小帅注入器', '请先在资源页面下载全部资源', false);
+            return;
+        }
+        isMusicPlaying ? pauseMusic() : playMusic(); 
+    }
+    function nextMusic() { 
+        if (!allResourcesDownloaded()) return;
+        currentMusicIndex = (currentMusicIndex + 1) % musicTracks.length; 
+        audio.src = musicTracks[currentMusicIndex].src; 
+        if (isMusicPlaying) audio.play().catch(() => {}); 
+        updateMusicUI(); 
+    }
+    function prevMusic() { 
+        if (!allResourcesDownloaded()) return;
+        currentMusicIndex = (currentMusicIndex - 1 + musicTracks.length) % musicTracks.length; 
+        audio.src = musicTracks[currentMusicIndex].src; 
+        if (isMusicPlaying) audio.play().catch(() => {}); 
+        updateMusicUI(); 
+    }
+    function updateMusicUI() { 
+        if (musicNowPlaying) musicNowPlaying.textContent = isMusicPlaying ? musicTracks[currentMusicIndex].title : '未播放音乐'; 
+        renderMusicList(); 
+    }
+
+    audio.addEventListener('ended', () => { nextMusic(); if (isMusicPlaying) playMusic(); });
+
+    const musicToggle = document.getElementById('musicToggle');
+    const musicNext = document.getElementById('musicNext');
+    const musicPrev = document.getElementById('musicPrev');
+    if (musicToggle) musicToggle.addEventListener('click', togglePlayPause);
+    if (musicNext) musicNext.addEventListener('click', nextMusic);
+    if (musicPrev) musicPrev.addEventListener('click', prevMusic);
+    renderMusicList();
+
+    // ============================================================
+    //  赞赏弹窗
+    // ============================================================
+    const donateModal = document.getElementById('donateModal');
+    const donateTrigger = document.getElementById('donateTrigger');
+    const donateClose = document.getElementById('donateClose');
+    
+    if (donateTrigger) {
+        donateTrigger.addEventListener('click', function(e) {
+            e.stopPropagation();
+            donateModal.classList.add('show');
+        });
+    }
+    if (donateClose) {
+        donateClose.addEventListener('click', function() {
+            donateModal.classList.remove('show');
+        });
+    }
+    if (donateModal) {
+        donateModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                donateModal.classList.remove('show');
+            }
+        });
+    }
+
+    // ============================================================
+    //  动态特效预览
+    // ============================================================
+    const previewCanvas = document.getElementById('effectPreview');
+    const pCtx = previewCanvas ? previewCanvas.getContext('2d') : null;
+    let previewAnimId = null;
+    let previewRunning = false;
+    let currentEffect = localStorage.getItem('xs_v13_effect') || 'none';
+
+    function resizePreview() {
+        if (!previewCanvas) return;
+        const rect = previewCanvas.parentElement.getBoundingClientRect();
+        previewCanvas.width = previewCanvas.clientWidth || 300;
+        previewCanvas.height = previewCanvas.clientHeight || 90;
+    }
+    if (previewCanvas) {
+        window.addEventListener('resize', resizePreview);
+        resizePreview();
+    }
+
+    function drawAuroraPreview(t) {
+        if (!pCtx) return;
+        const w = previewCanvas.width, h = previewCanvas.height;
+        pCtx.clearRect(0, 0, w, h);
+        const grad = pCtx.createLinearGradient(0, 0, w, h);
+        const colors = ['#00ff88', '#00ccff', '#aa66ff', '#ff44aa'];
+        for (let i = 0; i < 4; i++) {
+            const pos = (i + Math.sin(t * 0.002 + i * 1.2) * 0.3) / 4;
+            grad.addColorStop(Math.max(0, Math.min(1, pos)), colors[i]);
+        }
+        pCtx.fillStyle = grad;
+        pCtx.fillRect(0, 0, w, h);
+        for (let i = 0; i < 4; i++) {
+            const y = h * (0.15 + 0.7 * (i / 4 + Math.sin(t * 0.001 + i) * 0.15));
+            pCtx.beginPath();
+            pCtx.moveTo(0, y);
+            for (let x = 0; x < w; x += 2) {
+                const wave = Math.sin(x * 0.04 + t * 0.003 + i * 1.5) * 10 + Math.sin(x * 0.02 + t * 0.005) * 14;
+                pCtx.lineTo(x, y + wave);
+            }
+            pCtx.strokeStyle = `hsla(${200 + i * 30 + t * 0.02}, 90%, 70%, 0.35)`;
+            pCtx.lineWidth = 6 + Math.sin(t * 0.002 + i) * 2;
+            pCtx.shadowColor = `hsla(${200 + i * 30 + t * 0.02}, 100%, 60%, 0.2)`;
+            pCtx.shadowBlur = 10;
+            pCtx.stroke();
+        }
+        pCtx.shadowBlur = 0;
+    }
+
+    function drawBubblePreview(t) {
+        if (!pCtx) return;
+        const w = previewCanvas.width, h = previewCanvas.height;
+        pCtx.clearRect(0, 0, w, h);
+        pCtx.fillStyle = 'rgba(10,12,24,0.3)';
+        pCtx.fillRect(0, 0, w, h);
+        for (let i = 0; i < 12; i++) {
+            const x = (i * 137 + t * 0.02) % w;
+            const y = (i * 279 + t * 0.015) % h;
+            const r = 8 + 16 * (0.5 + 0.5 * Math.sin(t * 0.003 + i * 1.8));
+            const grad = pCtx.createRadialGradient(x - r * 0.3, y - r * 0.3, 2, x, y, r);
+            grad.addColorStop(0, `hsla(${200 + i * 20 + t * 0.02}, 100%, 80%, 0.5)`);
+            grad.addColorStop(0.5, `hsla(${200 + i * 20 + t * 0.02 + 30}, 80%, 60%, 0.3)`);
+            grad.addColorStop(1, `hsla(${200 + i * 20 + t * 0.02 + 60}, 70%, 40%, 0.1)`);
+            pCtx.beginPath();
+            pCtx.arc(x, y, r, 0, Math.PI * 2);
+            pCtx.fillStyle = grad;
+            pCtx.shadowColor = `hsla(${200 + i * 20 + t * 0.02}, 80%, 60%, 0.2)`;
+            pCtx.shadowBlur = 12;
+            pCtx.fill();
+            pCtx.shadowBlur = 0;
+            pCtx.beginPath();
+            pCtx.arc(x - r * 0.2, y - r * 0.2, r * 0.15, 0, Math.PI * 2);
+            pCtx.fillStyle = 'rgba(255,255,255,0.3)';
+            pCtx.fill();
+        }
+    }
+
+    function drawFireworkPreview(t) {
+        if (!pCtx) return;
+        const w = previewCanvas.width, h = previewCanvas.height;
+        pCtx.clearRect(0, 0, w, h);
+        pCtx.fillStyle = 'rgba(5,5,15,0.2)';
+        pCtx.fillRect(0, 0, w, h);
+        for (let i = 0; i < 35; i++) {
+            const angle = i * 0.8 + t * 0.001;
+            const radius = 25 + 40 * (0.5 + 0.5 * Math.sin(t * 0.002 + i * 0.5));
+            const x = w / 2 + Math.cos(angle) * radius * (0.5 + 0.5 * Math.sin(t * 0.001 + i));
+            const y = h / 2 + Math.sin(angle) * radius * (0.5 + 0.5 * Math.cos(t * 0.001 + i * 0.7));
+            const size = 2 + 3 * (0.5 + 0.5 * Math.sin(t * 0.005 + i * 1.3));
+            const hue = (i * 15 + t * 0.03) % 360;
+            pCtx.beginPath();
+            pCtx.arc(x, y, size, 0, Math.PI * 2);
+            pCtx.fillStyle = `hsla(${hue}, 100%, 70%, ${0.7 + 0.2 * (0.5 + 0.5 * Math.sin(t * 0.003 + i))})`;
+            pCtx.shadowColor = `hsla(${hue}, 100%, 60%, 0.3)`;
+            pCtx.shadowBlur = 10;
+            pCtx.fill();
+        }
+        pCtx.shadowBlur = 0;
+    }
+
+    function drawWavePreview(t) {
+        if (!pCtx) return;
+        const w = previewCanvas.width, h = previewCanvas.height;
+        pCtx.clearRect(0, 0, w, h);
+        pCtx.fillStyle = 'rgba(5,10,25,0.3)';
+        pCtx.fillRect(0, 0, w, h);
+        for (let i = 0; i < 4; i++) {
+            pCtx.beginPath();
+            const yOffset = h * (0.15 + 0.7 * (i / 4));
+            for (let x = 0; x < w; x += 2) {
+                const y = yOffset + Math.sin(x * 0.04 + t * 0.003 + i * 1.2) * 10 + Math.sin(x * 0.02 + t * 0.005) * 8;
+                if (x === 0) pCtx.moveTo(x, y);
+                else pCtx.lineTo(x, y);
+            }
+            pCtx.strokeStyle = `hsla(${200 + i * 40 + t * 0.02}, 90%, 70%, 0.35)`;
+            pCtx.lineWidth = 5 + Math.sin(t * 0.002 + i) * 2;
+            pCtx.shadowColor = `hsla(${200 + i * 40 + t * 0.02}, 80%, 60%, 0.2)`;
+            pCtx.shadowBlur = 12;
+            pCtx.stroke();
+        }
+        pCtx.shadowBlur = 0;
+    }
+
+    function drawGlitchPreview(t) {
+        if (!pCtx) return;
+        const w = previewCanvas.width, h = previewCanvas.height;
+        pCtx.clearRect(0, 0, w, h);
+        pCtx.fillStyle = 'rgba(0,0,0,0.1)';
+        pCtx.fillRect(0, 0, w, h);
+        for (let i = 0; i < 8; i++) {
+            const x = (i * 47 + t * 0.1) % w;
+            const y = (i * 83 + t * 0.08) % h;
+            const bw = 25 + 35 * (0.5 + 0.5 * Math.sin(t * 0.004 + i * 2.1));
+            const bh = 8 + 16 * (0.5 + 0.5 * Math.cos(t * 0.005 + i * 1.7));
+            const hue = (i * 30 + t * 0.05) % 360;
+            pCtx.fillStyle = `hsla(${hue}, 90%, 65%, 0.25)`;
+            pCtx.shadowColor = `hsla(${hue}, 100%, 60%, 0.2)`;
+            pCtx.shadowBlur = 10;
+            pCtx.fillRect(x, y, bw, bh);
+            pCtx.fillStyle = `hsla(${(hue + 180) % 360}, 80%, 60%, 0.15)`;
+            pCtx.fillRect(x + 10 * Math.sin(t * 0.01 + i), y + 5 * Math.cos(t * 0.008 + i), bw * 0.5, bh * 0.5);
+        }
+        pCtx.shadowBlur = 0;
+        for (let i = 0; i < 8; i++) {
+            const y = (i * 37 + t * 0.2) % h;
+            pCtx.fillStyle = `rgba(0,255,255,${0.03 + 0.03 * Math.sin(t * 0.01 + i)})`;
+            pCtx.fillRect(0, y, w, 1);
+        }
+    }
+
+    function drawRainbowPreview(t) {
+        if (!pCtx) return;
+        const w = previewCanvas.width, h = previewCanvas.height;
+        pCtx.clearRect(0, 0, w, h);
+        pCtx.fillStyle = 'rgba(0,0,0,0.1)';
+        pCtx.fillRect(0, 0, w, h);
+        for (let i = 0; i < 6; i++) {
+            const radius = 35 + i * 16 + 10 * Math.sin(t * 0.002 + i * 0.5);
+            const hue = (i * 30 + t * 0.02) % 360;
+            pCtx.beginPath();
+            pCtx.arc(w / 2, h / 2 + 10, radius, 0, Math.PI * 2);
+            pCtx.strokeStyle = `hsla(${hue}, 100%, 70%, 0.25)`;
+            pCtx.lineWidth = 7 + 4 * Math.sin(t * 0.003 + i * 0.7);
+            pCtx.shadowColor = `hsla(${hue}, 100%, 60%, 0.2)`;
+            pCtx.shadowBlur = 16;
+            pCtx.stroke();
+        }
+        pCtx.shadowBlur = 0;
+    }
+
+    const previewEffectMap = {
+        aurora: drawAuroraPreview,
+        bubble: drawBubblePreview,
+        firework: drawFireworkPreview,
+        wave: drawWavePreview,
+        glitch: drawGlitchPreview,
+        rainbow: drawRainbowPreview
+    };
+
+    function startEffectPreview() {
+        if (!previewCanvas) return;
+        if (!allResourcesDownloaded()) {
+            return;
+        }
+        if (previewAnimId) cancelAnimationFrame(previewAnimId);
+        previewRunning = true;
+        const startTime = performance.now();
+        function loop(now) {
+            if (!previewRunning) return;
+            const t = now - startTime;
+            const drawFn = previewEffectMap[currentEffect];
+            if (drawFn && currentEffect !== 'none') {
+                drawFn(t);
+            } else {
+                pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+                pCtx.fillStyle = '#f5f5f5';
+                pCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+                pCtx.fillStyle = '#999';
+                pCtx.font = '12px sans-serif';
+                pCtx.textAlign = 'center';
+                pCtx.fillText('选择特效', previewCanvas.width / 2, previewCanvas.height / 2 + 4);
+            }
+            previewAnimId = requestAnimationFrame(loop);
+        }
+        loop(startTime);
+    }
+
+    function stopEffectPreview() {
+        previewRunning = false;
+        if (previewAnimId) {
+            cancelAnimationFrame(previewAnimId);
+            previewAnimId = null;
+        }
+        if (pCtx && previewCanvas) {
+            pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+            pCtx.fillStyle = '#f5f5f5';
+            pCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+        }
+    }
+
+    document.querySelectorAll('.theme-effect-item').forEach(el => {
+        el.addEventListener('click', function() {
+            if (!allResourcesDownloaded()) {
+                showIOSNotification('小帅注入器', '请先在资源页面下载全部资源', false);
+                return;
+            }
+            document.querySelectorAll('.theme-effect-item').forEach(i => i.classList.remove('active'));
+            this.classList.add('active');
+            currentEffect = this.dataset.effect;
+            localStorage.setItem('xs_v13_effect', currentEffect);
+            if (document.getElementById('page-theme').classList.contains('active')) {
+                startEffectPreview();
+            }
+        });
+    });
+
+    const savedEffect = localStorage.getItem('xs_v13_effect');
+    if (savedEffect && previewEffectMap[savedEffect]) {
+        currentEffect = savedEffect;
+        document.querySelectorAll('.theme-effect-item').forEach(el => {
+            if (el.dataset.effect === savedEffect) el.classList.add('active');
+        });
+    }
+
+    // 悬浮窗主题色切换
+    document.querySelectorAll('#floatPanel .theme-color-item').forEach(item => {
+        item.addEventListener('click', function() {
+            document.querySelectorAll('#floatPanel .theme-color-item').forEach(i => i.classList.remove('active'));
+            this.classList.add('active');
+            const color = this.dataset.color;
+            const colorMap = {
+                '#ffffff': { bg: 'rgba(255,255,255,0.92)', text: '#2c3e50', accent: '#9b59b6' },
+                '#9c27b0': { bg: 'rgba(156,39,176,0.92)', text: '#ffffff', accent: '#ffd700' },
+                '#00c853': { bg: 'rgba(0,200,83,0.92)', text: '#ffffff', accent: '#ff6b6b' },
+                '#ffd600': { bg: 'rgba(255,214,0,0.92)', text: '#1a1a2e', accent: '#e74c3c' },
+                '#000000': { bg: 'rgba(10,10,20,0.92)', text: '#ffffff', accent: '#ffd700' },
+                '#e91e63': { bg: 'rgba(233,30,99,0.92)', text: '#ffffff', accent: '#ffd700' }
+            };
+            const config = colorMap[color];
+            if (!config) return;
+            floatPanel.style.background = config.bg;
+            const title = document.querySelector('#floatPanel .float-title');
+            if (title) {
+                title.style.color = config.text;
+                const span = title.querySelector('span');
+                if (span) span.style.color = config.accent;
+            }
+            document.querySelectorAll('#floatPanel .item span, #floatPanel .disc, #floatPanel .music-title, #floatPanel .slider-wrap div:first-child').forEach(el => {
+                el.style.color = config.text;
+            });
+        });
+    });
+
+    // ============================================================
+    //  音乐条动画
+    // ============================================================
+    let barAnimId = null;
+    function startBarAnimation() {
+        if (barAnimId) return;
+        const bars = document.querySelectorAll('#islandBars .bar');
+        let step = 0;
+        barAnimId = setInterval(() => {
+            step++;
+            const pattern = [
+                [8, 14, 20, 14, 8],
+                [10, 18, 22, 18, 10],
+                [6, 20, 24, 20, 6],
+                [12, 16, 18, 16, 12],
+                [8, 22, 20, 22, 8],
+                [14, 12, 24, 12, 14],
+                [6, 18, 22, 18, 6],
+                [10, 14, 20, 14, 10]
+            ];
+            const current = pattern[step % pattern.length];
+            bars.forEach((bar, i) => {
+                bar.style.height = current[i] + 'px';
+            });
+        }, 250);
+    }
+    startBarAnimation();
+
+    // ============================================================
+    //  帧率监测
+    // ============================================================
+    let fpsMonitorId = null;
+    let fpsFrameCount = 0;
+    let fpsLastTime = performance.now();
+    function startFPSMonitor() {
+        if (fpsMonitorId) return;
+        const fpsElement = document.getElementById('fpsValue');
+        function countFrame(time) {
+            fpsFrameCount++;
+            if (time - fpsLastTime >= 1000) {
+                const fps = Math.round(fpsFrameCount * 1000 / (time - fpsLastTime));
+                if (fpsElement) fpsElement.textContent = fps;
+                fpsFrameCount = 0;
+                fpsLastTime = time;
+            }
+            fpsMonitorId = requestAnimationFrame(countFrame);
+        }
+        fpsMonitorId = requestAnimationFrame(countFrame);
+    }
+
+    // ============================================================
+    //  网络延迟监测
+    // ============================================================
+    let netMonitorId = null;
+    function startNetworkMonitor() {
+        if (netMonitorId) return;
+        const netElement = document.getElementById('netDelay');
+        const homeNetElement = document.getElementById('homeStatusNet');
+        function updateNet() {
+            const delay = Math.floor(Math.random() * 60) + 20;
+            if (netElement) netElement.textContent = delay;
+            if (homeNetElement) homeNetElement.textContent = delay + 'ms';
+            netMonitorId = setTimeout(updateNet, 1500);
+        }
+        updateNet();
+    }
+
+    // ============================================================
+    //  卡密验证
+    // ============================================================
+    const verifyIsland = document.getElementById('verifyIsland');
+    const cardModal = document.getElementById('cardModal');
+    let isVerified = false;
+
+    function showVerifyIsland() { 
+        verifyIsland.style.display = 'block'; 
+        requestAnimationFrame(() => { verifyIsland.classList.add('show'); }); 
+    }
+
+    document.getElementById('grantPermBtn').addEventListener('click', () => {
+        document.getElementById('permDialog').style.display = 'none';
+        showVerifyIsland();
+    });
+
+    verifyIsland.addEventListener('click', () => {
+        if (isVerified) return;
+        cardModal.style.display = 'flex';
+        document.getElementById('cardInput').value = '';
+        document.getElementById('cardError').textContent = '';
+        document.getElementById('cardInput').focus();
+    });
+
+    document.getElementById('cardSubmit').addEventListener('click', () => {
+        const input = document.getElementById('cardInput').value.trim();
+        if (input === '123456') {
+            isVerified = true;
+            cardModal.style.display = 'none';
+            verifyIsland.style.display = 'none';
+            document.getElementById('main').style.display = 'block';
+            document.getElementById('bottomNav').style.display = 'flex';
+
+            updatePermUI();
+            updateShieldUI();
+            renderResourceList();
+            updateResourceProgress();
+
+            const count = parseInt(localStorage.getItem('xs_v13_launch_count') || '0');
+            document.getElementById('launchCount').textContent = count;
+
+            const theme = localStorage.getItem('xs_v13_theme');
+            if (theme && themeColors[theme]) {
+                document.body.style.background = themeColors[theme].bg;
+            }
+
+            showIOSNotification('小帅注入器', '欢迎使用，XSHUB工作中', true);
+        } else {
+            document.getElementById('cardError').textContent = '卡密错误，请重新输入';
+        }
+    });
+
+    // ============================================================
+    //  初始化
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('main').style.display = 'none';
+        renderResourceList();
+        updateResourceProgress();
+        updateTime();
+        updateFestival();
+    });
+
+    showAd(0);
+
+    console.log("小帅注入器 V1.7 加载完成 | 时间节日实时更新 | 资源锁定系统已启用");
+</script>
+</body>
+</html>
